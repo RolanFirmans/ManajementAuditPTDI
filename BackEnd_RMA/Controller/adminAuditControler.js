@@ -42,58 +42,41 @@ const GetAuditee = async (req, res) => {
 
 //-- MEMILIH AUDITEE  masih ada kesalahan
 const UpdateAuditee = async (req, res) => {
-  const { key1, key2 } = req.body;  // Mengambil KEY1 dan KEY2 dari body request
-
-  try {
-    const result = await pool.query(
-      'UPDATE TMAUDEVD SET n_audusr_urnm = $1 WHERE I_AUDEVD_AUD = $2',
-      [key2, key1]
-    );
-
-    if (result.rowCount > 0) {
-      response(200, result.rowCount, 'Auditee berhasil diperbarui', res);
-    } else {
-      response(404, [], 'Auditee tidak ditemukan', res);
+    const { key1, key2 } = req.body;  // Mengambil KEY1 dan KEY2 dari body request
+  
+    try {
+      const result = await pool.query(
+        'UPDATE TMAUDEVD SET N_AUDUSR_USRNM = $1 WHERE I_AUDEVD_AUD = $2',
+        [key2, key1]
+      );
+  
+      // Memastikan bahwa update berhasil dilakukan
+      if (result.rowCount > 0) {
+        response(200, result.rowCount, 'Auditee berhasil diperbarui', res);
+      } else {
+        response(404, [], 'Auditee tidak ditemukan', res);
+      }
+    } catch (error) {
+      console.error('Error executing update', error.stack);
+      response(500, [], 'Terjadi kesalahan saat memperbarui Auditee', res);
     }
-  } catch (error) {
-    console.error('Error executing update', error.stack);
-    response(500, [], 'Terjadi kesalahan saat memperbarui Auditee', res);
-  }
 };
-
-// -- MENAMPILKAN AUDITEE
+  
 const GetSelectedAuditee = async (req, res) => {
-  try {
-    const result = await pool.query(`
-      
-      SELECT b.n_audusr_usrnm AS nik, b.n_audusr_nm AS nama
-      FROM tmaudevd a
-      JOIN tmaudusr b ON a.i_audevd_aud = b.n_audusr_usrnm;
-    `);
-
-    console.log("Hasil Query:", result.rows);
-
-    if (result.rows.length > 0) {
-      res.status(200).json({
-        message: 'Data Auditee terpilih ditemukan',
-        data: result.rows
-      });
-    } else {
-      res.status(200).json({
-        message: 'Tidak ada Auditee yang ditemukan',
-        data: []
-      });
+    try {
+      const result = await pool.query(`
+        SELECT B.N_AUDUSR_USRNM, B.N_AUDUSR_NM
+        FROM TMAUDEVD A, TMAUDUSR B
+        WHERE A.I_AUDEVD_AUD = B.N_AUDUSR_USRNM
+      `);
+  
+      // Mengirimkan data auditee yang terpilih
+      response(200, result.rows, 'Data Auditee terpilih ditemukan', res);
+    } catch (error) {
+      console.error('Error executing query', error.stack);
+      response(500, [], 'Terjadi kesalahan saat mengambil data Auditee terpilih', res);
     }
-  } catch (error) {
-    console.error('Error executing query', error.stack);
-    res.status(500).json({
-      message: 'Terjadi kesalahan saat mengambil data Auditee terpilih',
-      error: error.message
-    });
-  }
 };
-
-
 
 ///////////////////////////////////////////////
 // DETAILING PROCESSING DATA EVIDENCE AFTER ADMIN AUDIT IT INPUT AUDITEE
