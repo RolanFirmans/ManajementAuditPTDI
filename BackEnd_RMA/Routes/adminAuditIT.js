@@ -28,8 +28,8 @@ router.use(express.urlencoded({ extended: true }));
 
 router.get('/tmau-devd', GetDataEvidence);
 router.get('/auditee', GetAuditee);
-router.put('/up-auditee', UpdateAuditee);
-router.get('/selected-auditee', GetSelectedAuditee);  
+router.post('/update-auditee', UpdateAuditee);
+router.get('/select-auditee', GetSelectedAuditee);
 router.get('/selected-evidence', GetEvidence);
 router.get('/selected-remarks-auditee', getDataRemarks);
 router.put('/up-status', updateStatus);

@@ -15,6 +15,7 @@ const EvidenceAait = () => {
   const [auditeeData, setAuditeeData] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentEditOrder, setCurrentEditOrder] = useState(null);
+  const [selectedAuditee, setSelectedAuditee] = useState([]);
 
   const [newUser, setNewUser] = useState({
     no: "",
@@ -196,6 +197,60 @@ const EvidenceAait = () => {
       )
     : [];
 
+// MEMILIH AUDITEE
+const hadleSelectAuditee = async () => {
+  if (!currentEditOrder) return;
+
+  console.log("Current Edit Order Auditee:", currentEditOrder.auditee);
+  console.log("Selected Auditee:", selectedAuditee.n_audusr_usrnm);
+
+  try {
+    const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-auditee`, {
+      key1: currentEditOrder.auditee, 
+      key2: selectedAuditee.n_audusr_usrnm
+    });
+
+    if (response.status === 200) {
+      console.log('Auditee berhasil diperbarui');
+      // Fetch data terbaru setelah update
+    } else {
+      console.error('Gagal memperbarui auditee:', response.data.message || 'Tidak ada pesan error dari server');
+    }
+  } catch (error) {
+    console.error('Error updating auditee:', error.response ? error.response.data : error.message);
+  }
+};
+
+// -- MENAMPILKAN AUDITEE
+const handleSelect = async () => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/select-auditee`);
+
+    // Pastikan respons memiliki payload dan data
+    if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+      const formattedData = response.data.payload.data.map(item => ({
+        nik: item.n_audusr_usrnm,
+        nama: item.n_audusr_nm
+      }));
+
+      setSelectedAuditee(formattedData); // Update state dengan data yang sudah diformat
+    } else {
+      console.error('Data tidak valid:', response.data);
+      setSelectedAuditee([]); // Set state dengan array kosong jika data tidak valid
+    }
+  } catch (error) {
+    console.error('Error fetching selected auditee data:', error);
+    setSelectedAuditee([]); // Set state dengan array kosong jika terjadi kesalahan
+  }
+
+  // Tutup modal dan reset currentEditOrder jika diperlukan
+  setIsEditModalOpen(false);
+  setCurrentEditOrder(null);
+};
+
+
+
+
   return (
     <div className="evidence-content">
       <h2>Data Evidence</h2>
@@ -292,7 +347,7 @@ const EvidenceAait = () => {
                   filteredData.map((item, index) => (
                     <tr key={item.n_audusr_usrnm || index}>
                       <td>{index + 1}</td>
-                      <td><input type="checkbox" /></td>
+                      <td><input type="checkbox" onChange={() => hadleSelectAuditee(item.n_audusr_usrnm)}/></td>
                       <td>{item.n_audusr_usrnm}</td>
                       <td>{item.n_audusr_nm}</td>
                       <td>{item.organisasi}</td>
@@ -313,7 +368,7 @@ const EvidenceAait = () => {
 
             <div className="modal-actions">
               <button onClick={() => setIsEditModalOpen(false)}>Cancel</button>
-              <button className="select-btn">Select</button>
+              <button className="select-btn" onClick={handleSelect}>Select</button>
             </div>
           </div>
         </div>
