@@ -12,9 +12,35 @@ const UploadFileExcelSpi = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dragOver, setDragOver] = useState(false);
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  // const handleFileChange = (e) => {
+  //   setFile(e.target.files[0]);
+  // };
+
+  const handleFileChange = async (e) => {
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
+  
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+  
+    try {
+      const response = await fetch('http://localhost:3100/SPI//upload-file-excel', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+  
+      const result = await response.json();
+      console.log('File saved successfully:', result);
+      alert('Data sudah terupload!');
+    } catch (error) {
+      console.error('There was a problem with the fetch operation:', error);
+    }
   };
+
 
   const hasExtension = (fileName, exts) => {
     return new RegExp(`(${exts.join("|").replace(/\./g, "\\.")})$`).test(fileName);
