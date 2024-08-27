@@ -1,12 +1,29 @@
 // admin.js
 const express = require('express');
 const cors = require('cors');
-const { createUploadExcel } = require('../Controller/spiControler');
-const { DownloadFileExcel } = require('../Controller/spiControler');
-const { importExcelToDB } = require('../Controller/spiControler');
-const { saveDataExcel } = require('../Controller/spiControler');
-const { uploadExcel } = require('../Controller/spiControler');
-
+const {
+    uploadExcel,
+    importExcelToDB,
+    saveDataExcel,
+    DownloadFileExcel,
+    GetDataEvidence,
+    GetEvidence,
+    getDataRemarks,
+    GetSelectedAuditee,
+    updateStatus,
+    GetTitle,
+    CreateKomen,
+    GetReviewEvidence,
+    GetBalasanReviewEvidence,
+    ReplyKomen,
+    GetEvidenceDGCA,
+    GetEvidenceFinance,
+    GetEvidenceITML,
+    GetEvidenceParkerRussel,
+    GetLastUpdate,
+    GetSumary
+  } = require('../Controller/spiControler');
+  
 
 
 const router = express.Router();
@@ -26,6 +43,24 @@ router.use(express.urlencoded({ extended: true }));
 // Definisikan route untuk menampilkan template file excel
 router.get('/TemplateFileExcel', DownloadFileExcel);
 router.get('/import-excel-db', importExcelToDB);
+router.get('/tmau-devd', GetDataEvidence);
+router.get('/selected-evidence', GetEvidence);
+router.get('/selected-remarks-auditee', getDataRemarks);
+router.get('/selected-auditee', GetSelectedAuditee);  
+router.get('/selected-title', GetTitle);
+router.get('/menampilkan-review-evidence', GetReviewEvidence);
+router.get('/menampilkan-balasan-review-evidence-admin-audit', GetBalasanReviewEvidence)
+router.get('/selected-evidence-DGCA', GetEvidenceDGCA);
+router.get('/selected-evidence-finance', GetEvidenceFinance);
+router.get('/selected-evidence-ITML', GetEvidenceITML);
+router.get('/selected-evidence-parker-russel', GetEvidenceParkerRussel);
+router.get('/last-update', GetLastUpdate);
+router.get('/Sumary', GetSumary);
+
+
+
+
+
 
 
 // POST
@@ -33,6 +68,9 @@ router.get('/import-excel-db', importExcelToDB);
 // router.post('/upload-file-excel-spi', createUploadExcel);
 router.post('/save-data-excel', saveDataExcel);
 router.post('/upload-file-excel', uploadExcel);
+router.post('/create-koment', CreateKomen);
+router.post('/reply-komen', ReplyKomen);
+
 
 
 
@@ -43,6 +81,8 @@ router.post('/upload-file-excel', uploadExcel);
 // PUT
 // Definisikan route untuk update karyawan
 // router.put('/update-karyawan/:n_audusr_usrnm', updateKaryawan); 
+router.put('/up-status', updateStatus);
+
 
 
 

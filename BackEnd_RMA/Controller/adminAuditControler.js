@@ -61,7 +61,8 @@ const UpdateAuditee = async (req, res) => {
       response(500, [], 'Terjadi kesalahan saat memperbarui Auditee', res);
     }
 };
-  
+
+// -- MENAMPILKAN AUDITEE
 const GetSelectedAuditee = async (req, res) => {
     try {
       const result = await pool.query(`

@@ -1,10 +1,8 @@
 const pool = require('../utils/dbaudit');
-const ExcelJS = require('exceljs');
-const fs = require('fs');
 const XLSX = require('xlsx');
+const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
-
 
 // Fungsi untuk memformat tanggal
 const formatDate = (dateString) => {
@@ -30,17 +28,48 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }).single('file');
 
 const uploadExcel = async (req, res) => {
-  try {
-      console.log(req.file); // Harusnya menampilkan informasi file
+  upload(req, res, async (err) => {
+      if (err) {
+          return res.status(500).json({ error: 'File upload failed' });
+      }
+      if (!req.file) {
+          return res.status(400).json({ error: 'No file uploaded' });
+      }
 
-      res.send('File berhasil di-upload');
-  } catch (error) {
-      console.error(error);
-      res.status(500).send('Terjadi kesalahan saat meng-upload file');
-  }
-}
+      const filePath = req.file.path;
+
+      try {
+          // Membaca file Excel yang diunggah
+          const workbook = XLSX.readFile(filePath);
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const data = XLSX.utils.sheet_to_json(sheet);
+
+          // Format data atau lakukan operasi lain sesuai kebutuhan
+          const formattedData = data.map(item => ({
+              ...item,
+              formattedDate: formatDate(item.date), // contoh format tanggal
+          }));
+
+          // Kirim respon dengan data yang diproses
+          res.json(formattedData);
+
+          // Simpan data Excel ke dalam database
+          await saveDataExcel(filePath);
+
+      } catch (error) {
+          res.status(500).json({ error: 'Failed to process Excel file' });
+      } finally {
+          // Hapus file setelah diproses (opsional)
+          fs.unlink(filePath, (err) => {
+              if (err) console.error('Failed to delete temporary file:', err);
+          });
+      }
+  });
+};
 
 
+// -- MENYIMPAN EXCEL KE DATABASE
 const importExcelToDB = async (req, res) => {
   try {
       // Path ke file Excel
@@ -59,12 +88,10 @@ const importExcelToDB = async (req, res) => {
     }
 };
 
+// -- SAVE DATA FILE EXCEL KE DALAM DATABASE
 
-const saveDataExcel = async (req, res) => {
+const saveDataExcel = async (filePath) => {
   try {
-    // Path ke file Excel
-    const filePath = path.join(__dirname, '..', 'uploads', 'SPI.xlsx');
-      
     // Membaca file Excel
     const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0];
@@ -89,7 +116,7 @@ const saveDataExcel = async (req, res) => {
         row['Remarks by Auditor'],  // N_AUDEVD_AUDR
         row['Auditee'],         // I_AUDEVD_AUD
         row['Auditor'],          // C_AUDEVD_AUDR
-        row['Status'],           // C_AUDEVD_STATCMPL (Menggunakan Status dua kali, ini mungkin perlu diperiksa apakah itu sesuai dengan kebutuhan)
+        row['StatusComplete'],           // C_AUDEVD_STATCMPL (Menggunakan Status dua kali, ini mungkin perlu diperiksa apakah itu sesuai dengan kebutuhan)
         formattedYear,           // Menggunakan formattedYear untuk C_AUDEVD_YR
       ];
 
@@ -104,13 +131,13 @@ const saveDataExcel = async (req, res) => {
       await pool.query(query, values);
     }
     
-    res.send('Data has been saved to PostgreSQL');
+    console.log('Data has been saved to PostgreSQL');
   } catch (error) {
     console.error('Error saving data to PostgreSQL:', error);
-    res.status(500).send('Internal Server Error');
   }
 };
 
+// -- DOWNLOAD TEMPLATE EXCEL
 
 const DownloadFileExcel = async (req, res) => {
   const workbook = new ExcelJS.Workbook();
@@ -165,13 +192,555 @@ const DownloadFileExcel = async (req, res) => {
     });
 };
 
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING SPI AFTER UPLOAD EXCEL
+
+// -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
+const GetDataEvidence = async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();  // Mendapatkan tahun saat ini
+    const result = await pool.query(
+      'SELECT * FROM TMAUDEVD WHERE EXTRACT(YEAR FROM C_AUDEVD_YR) = $1', [currentYear]
+    );
+    console.log('Query berhasil dijalankan', result.rows);
+    
+    // Menggunakan fungsi response yang sudah didefinisikan sebelumnya
+    response(200, result.rows, 'Data ditemukan', res);
+  } catch (error) {
+    console.error('Error executing query', error.stack);
+
+    response(500, [], 'Terjadi kesalahan', res);
+  }
+};
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING EDIT DATA EVIDEN
+
+
+// -- EDIT DATA EVIDENCE
+
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING DATA EVIDENCE (ADMIN AUDIT IT & SPI) BEBERAPA REVIEW - STATUS COMPLETE
+// -- 
+
+
+// -- MENAMPILKAN DATA EVIDENCE
+const GetEvidence = async (req, res) => {
+  const postgres = `SELECT * FROM tmaudevd WHERE c_audevd_yr = $1`;
+  pool.query(postgres, [req.params.year], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan data evidence SPI", res);
+  });
+}
+
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE :
+const getDataRemarks = async (req, res) => {
+  const key = req.query.key; //TMAUDEVD.I_AUDEVD  Mendapatkan nilai dari query parameter atau bisa dari sumber lain
+  const postgres = `
+    SELECT B.N_AUDEVDFILE_FILE, B.E_AUDEVDFILE_DESC FROM TMAUDEVDFILEDTL A,
+    TMAUDEVDFILE B WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDFILE = B.I_AUDEVDFILE
+  `;
+  pool.query(postgres, [key], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan data diupload oleh Auditee ", res);
+  });
+}
+
+// -- MENAMPILKAN AUDITEE
+const GetSelectedAuditee = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT B.N_AUDUSR_USRNM, B.N_AUDUSR_NM
+      FROM TMAUDEVD A, TMAUDUSR B
+      WHERE A.I_AUDEVD_AUD = B.N_AUDUSR_USRNM
+    `);
+
+    // Mengirimkan data auditee yang terpilih
+    response(200, result.rows, 'Data Auditee terpilih ditemukan', res);
+  } catch (error) {
+    console.error('Error executing query', error.stack);
+    response(500, [], 'Terjadi kesalahan saat mengambil data Auditee terpilih', res);
+  }
+};
+
+// UPDATE STATUS SPI
+const updateStatus = async (req, res) => {
+  const key = req.body.I_AUDEVD; // Mengambil nilai I_AUDEVD dari request body
+  const postgres = `UPDATE TMAUDEVD SET C_AUDEVD_STATCMPL = 3 WHERE I_AUDEVD = $1`;
+
+  pool.query(postgres, [key], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Update Status Berhasil", res);
+  });
+}
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING DATA EVIDENCE AFTER STATUS COMPLETE ADMIN AUDIT IT
+
+// MENAMPILKAN DATA EVIDENCE (sudah ada sama persis diatas)
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// UPDATE STATUS SPI ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING DATA EVIDENCE AFTER COMPLETE ADMIN AUDIT IT AND UPDATE SPI
+
+// MENAMPILKAN DATA EVIDENCE (sudah ada sama persis diatas)
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// UPDATE STATUS SPI ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+//DETAIL PROCESSING REVIEW FILE EVIDENCE SPI & ADMIN AUDIT IT
+
+// -- MENAMPILKAN TITLE EVIDENCE YANG DI PILIH 
+const GetTitle = async (req, res) => {
+  const key = req.params.I_AUDEVD; // Mengambil nilai I_AUDEVD dari request params
+  const postgres = `
+      SELECT N_AUDEVD_TITLE FROM TMAUDEVD WHERE I_AUDEVD=$1
+    `;
+
+  pool.query(postgres, [key], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Auditee", res);
+  });
+}
+
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// -- REPLY KOMEN -- //
+// -- ERROR KARENA BELUM ADA DATANYA BELUM DI INSERT --/
+const CreateKomen = async (req, res) => {
+  const { key1, key2, key3, key4, key5 } = req.body;
+
+  const postgres = `
+  INSERT INTO TMAUDEVDCOMNT 
+  (I_AUDEVD, I_AUDEVDCOMNT_PRNT, E_AUDEVDCOMNT_CONTN, D_AUDEVDCOMNT_DT, I_AUDEVDCOMNT_AUT)
+  VALUES ($1, $2, $3, $4, $5)`;
+
+  pool.query(postgres,[key1, key2, key3, key4, key5], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, " Reply Komen ", res);
+  });
+}
+
+// -- MENAMPILAN REVIEW EVIDENCE --//
+const GetReviewEvidence = async (req, res) =>{
+  const key1 = req.query.key1;
+  const postgres = `
+  SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
+  A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
+  FROM TMAUDEVDCOMNT A, TMAUDUSR B 
+  WHERE A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM AND A.I_AUDEVD = $1 AND 
+  A.I_AUDEVDCOMNT_PRNT = 0
+  ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
+
+  pool.query(postgres,[key1], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, " Menampilkan Review Evidence ", res);
+  });
+}
+
+// -- MENAMPILKAN BALASAN REVIEW EVIDENCE -- //
+const GetBalasanReviewEvidence = async (req, res) => {
+  const key1 = req.params.i_audevd; // mengambil dari URL parameter
+  const key2 = req.params.i_audevdcomnt; // mengambil dari URL parameter
+
+  const postgres = `
+  SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
+      A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
+      FROM TMAUDEVDCOMNT A
+      JOIN TMAUDUSR B ON A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM
+      WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDCOMNT_PRNT = $2
+      ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
+
+  pool.query(postgres, [key1, key2], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Balasan Review Evidence", res);
+  });
+}
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REPLY FILE EVIDENCE SPI & ADMIN AUDIT IT
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE
+// ( sudah ada kondisi query nya sama diatas)
+
+// REPLY KOMEN
+// Erro diakrenakan input di di postman tipe data tidak sesuai
+
+const ReplyKomen = async (req, res) => {
+  const { key1, key2, key3, key4, key5 } = req.body;
+
+  const postgres = `
+  INSERT INTO TMAUDEVDCOMNT 
+  (I_AUDEVD, I_AUDEVDCOMNT_PRNT, E_AUDEVDCOMNT_CONTN, D_AUDEVDCOMNT_DT, I_AUDEVDCOMNT_AUT)
+  VALUES ($1, $2, $3, $4, $5)`;
+
+  pool.query(postgres,[key1, key2, key3, key4, key5], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, " Reply Komen ", res);
+  });
+
+}
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING DATA EVIDENCE COMPLETE SPI
+
+// MENAMPILKAN DATA EVIDENCE (sudah ada sama persis diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// UPDATE STATUS ( sudah ada kondisi query nya sama diatas)
+
+// -----------------------------------------------------------------------------
+// -----------------------DGCA------------------------------------
+
+// MENAMPILKAN DATA EVIDENCE DGCA
+const GetEvidenceDGCA  = async (req, res) => {
+  const postgres = `
+    SELECT * FROM TMAUDEVD
+    WHERE C_AUDEVD_YR = $1
+    AND C_AUDEVD_AUDR = 1`;
+  pool.query(postgres, [req.params.year], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Data Evidence DGCA SPI", res);
+  });
+}
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// UPDATE STATUS ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REVIEW FILE EVIDENCE SPI & AUDITOR DGCA
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// TAMBAH KOMEN BARU
+// kodingan masih error
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REPLY FILE EVIDENCE SPI & AUDITOR DGCA
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH
+// ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// REPLY KOMEN
+// Erro diakrenakan input di di postman tipe data tidak sesuai
+// ( sudah ada kondisi query nya sama diatas )
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// -----------------------FINANCE------------------------------------
+
+// DETAIL PROCESSING DATA EVIDENCE FINANCE
+
+// MENAMPILKAN DATA EVIDENCE FINANCE
+
+const GetEvidenceFinance  = async (req, res) => {
+  const postgres = `
+    SELECT * FROM TMAUDEVD
+    WHERE C_AUDEVD_YR = $1
+    AND C_AUDEVD_AUDR = 2`;
+  pool.query(postgres, [req.params.year], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Data Evidence Finance SPI", res);
+  });
+}
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// UPDATE STATUS ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REVIEW FILE EVIDENCE SPI & AUDITOR FINANCE
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH
+// ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// REVIEW FILE EVIDENCE
+// TAMBAH KOMEN BARU
+// kodingan masih error
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REPLY FILE EVIDENCE SPI & AUDITOR FINANCE
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// REPLY KOMEN
+// Erro diakrenakan input di di postman tipe data tidak sesuai
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// ----------------------------ITML-------------------------------
+// DETAIL PROCESSING DATA EVIDENCE ITML
+
+// MENAMPILKAN DATA EVIDENCE ITML
+
+const GetEvidenceITML  = async (req, res) => {
+  const postgres = `
+    SELECT * FROM TMAUDEVD
+    WHERE C_AUDEVD_YR = $1
+    AND C_AUDEVD_AUDR = 3`;
+  pool.query(postgres, [req.params.year], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Data Evidence Finance SPI", res);
+  });
+}
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// UPDATE STATUS ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REVIEW FILE EVIDENCE SPI & AUDITOR ITML
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH
+// ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// REVIEW FILE EVIDENCE
+// TAMBAH KOMEN BARU
+// kodingan masih error
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REPLY FILE EVIDENCE SPI & AUDITOR ITML
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// REPLY KOMEN
+// Erro diakrenakan input di di postman tipe data tidak sesuai
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+
+
+// -----------------------------------------------------------------------------
+// ----------------------------PARKER RUSSEL-------------------------------
+
+
+// DETAIL PROCESSING DATA EVIDENCE PARKER RUSSEL
+
+// MENAMPILKAN DATA EVIDENCE PARKER RUSSEL
+
+const GetEvidenceParkerRussel  = async (req, res) => {
+  const postgres = `
+    SELECT * FROM TMAUDEVD
+    WHERE C_AUDEVD_YR = $1
+    AND C_AUDEVD_AUDR = 4`;
+  pool.query(postgres, [req.params.year], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Data Evidence Finance SPI", res);
+  });
+}
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// UPDATE STATUS ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REVIEW FILE EVIDENCE SPI & AUDITOR PARKER RUSSEL
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH
+// ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// REVIEW FILE EVIDENCE
+// TAMBAH KOMEN BARU
+// kodingan masih error
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING REPLY FILE EVIDENCE SPI & AUDITOR PARKER RUSSEL
+
+// MENAMPILKAN TITLE EVIDENCE YANG DIPILIH ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// REPLY KOMEN
+// Erro diakrenakan input di di postman tipe data tidak sesuai
+
+// MENAMPILKAN REVIEW EVIDENCE ( sudah ada kondisi query nya sama diatas)
+
+//  MENAMPILKAN BALASAN REVIEW EVIDENCE // ( sudah ada kondisi query nya sama diatas)
+
+// -----------------------------------------------------------------------------
+// DETAIL PROCESSING EXPORT EXCEL
+
+// MENAMPILKAN DATA EVIDENCE (sudah ada sama persis diatas)
+
+// MENAMPILKAN AUDITEE ( sudah ada kondisi query nya sama diatas)
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE ( sudah ada kondisi query nya sama diatas )
+
+// LAST UPDATE
+const GetLastUpdate  = async (req, res) => {
+  const postgres = `
+    SELECT D_ENTRY FROM TMAUDEVD
+    WHERE C_AUDEVD_YR = $1 AND C_AUDEVD_AUDR = $2
+    `;
+  pool.query(postgres, [req.params.year], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Data Evidence Finance SPI", res);
+  });
+}
+
+// SUMARY
+const GetSumary  = async (req, res) => {
+  const postgres = `
+    SELECT AVG(C_AUDEVD_STAT) AS average
+    FROM TMAUDEVD
+    WHERE C_AUDEVD_YR = $1 AND C_AUDEVD_AUDR = $2
+    WHERE C_AUDEVD_YR = $1 AND C_AUDEVD_AUDR = $2
+  `;
+  pool.query(postgres, [req.params.year], (error, result) => {
+    if (error) {
+      console.error("Error executing query", error.stack);
+      return response(500, null, "Terjadi kesalahan pada server", res);
+    }
+    response(200, result.rows, "Menampilkan Data Evidence Finance SPI", res);
+  });
+}
+
+// -----------------------------------------------------------------------------
+
+
+
 
 
 module.exports = {
-//   createUploadExcel,
   uploadExcel,
   importExcelToDB,
   saveDataExcel,
   DownloadFileExcel,
+  GetDataEvidence,
+  GetEvidence,
+  getDataRemarks,
+  GetSelectedAuditee,
+  updateStatus,
+  GetTitle,
+  CreateKomen,
+  GetReviewEvidence,
+  GetBalasanReviewEvidence,
+  ReplyKomen,
+  GetEvidenceDGCA,
+  GetEvidenceFinance,
+  GetEvidenceITML,
+  GetEvidenceParkerRussel,
+  GetLastUpdate,
+  GetSumary,
 }
 
