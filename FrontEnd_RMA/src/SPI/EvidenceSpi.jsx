@@ -86,22 +86,41 @@ const EvidenceSpi = () => {
     }));
   };
 
-  const handleAddUser = () => {
-    if (editingUser) {
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.no === editingUser.no ? { ...editingUser, ...newUser } : order
-        )
-      );
-      setEditingUser();
-    } else {
-      setOrders((prev) => [
-        ...prev,
-        { no: prev.length > 0 ? prev[prev.length - 1].no + 1 : 1, ...newUser },
-      ]);
+  const handleAddUser = async () => {
+    try {
+      if (editingUser) {
+        // Mengedit data yang ada
+        const response = await axios.put(
+          `${import.meta.env.VITE_HELP_DESK}/SPI/edit-data`, // Ubah endpoint sesuai API yang digunakan
+          { ...editingUser, ...newUser }
+        );
+        if (response.status === 200) {
+          setOrders((prev) =>
+            prev.map((order) =>
+              order.no === editingUser.no ? { ...editingUser, ...newUser } : order
+            )
+          );
+          setEditingUser(null);
+        }
+      } else {
+        // Menambahkan data baru
+        const response = await axios.post(
+          `${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, // Ubah endpoint sesuai API yang digunakan
+          newUser
+        );
+        if (response.status === 201) {
+          setOrders((prev) => [
+            ...prev,
+            { no: prev.length > 0 ? prev[prev.length - 1].no + 1 : 1, ...newUser },
+          ]);
+        }
+      }
+      setIsModalOpen(false);
+      resetNewUser();
+    } catch (error) {
+      console.error('Error adding or editing user:', error);
+      // Handle error sesuai kebutuhan, misalnya dengan menampilkan pesan kesalahan ke pengguna
     }
-    setIsModalOpen(false);
-    resetNewUser();
   };
 
 
@@ -127,14 +146,58 @@ const EvidenceSpi = () => {
     setUserToDelete(null);
   };
 
-  const handleInputChange = (event) => {
-    const { name, value } = event.target;
-    setNewUser((prevUser) => ({
-      ...prevUser,
-      [name]: value,
-    }));
-  };
+  const handleUpdateUser = async (event) => {
+    try {
+      // const roleValue = getRoleValue(newUser.Role);
+  
+      // if (roleValue === null) {
+      //   throw new Error('Peran yang dipilih tidak valid');
+      // }
+  
+      const bodyData = {
+        // key1: newUser.NIK,
+        // c_audusr_role: roleValue.toString(),
+        // n_audusr_nm: newUser.Name,
+        // i_audusr_email: newUser.Email,
 
+        key:newUser.no,    // I_AUDEVD
+        key1:newUser.dataAndDocumentNeeded ,   // AUDEVD_TITTLE
+        key2:newUser.phase ,   // N_AUDEVD_PHS
+        key3:newUser.status ,   // C_AUDEVD_STAT
+        key4:newUser.deadline ,   // D_AUDEVD_DDL
+        key5:newUser.auditor     // C_AUDEVD_AUDR    
+      };
+  
+      console.log('Data yang akan dikirim:', bodyData);
+  
+      const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/SPI/edit-data/${newUser.no}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bodyData),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Terjadi kesalahan saat memperbarui pengguna');
+      }
+  
+      const result = await response.json();
+      console.log('Hasil update:', result);
+  
+      toast.success('Pengguna berhasil diperbarui');
+      setIsAddUserModalOpen(false);
+      setNewUser({ no: '', dataAndDocumentNeeded: '', phase: '', status: '', deadline: '', auditor: '' }); // Reset newUser
+      fetchKaryawan(); // Refresh daftar karyawan setelah update
+      setIsEditing(false); // Reset flag isEditing setelah update
+  
+    } catch (error) {
+      console.error('Error memperbarui pengguna:', error);
+      toast.error(`Error memperbarui pengguna: ${error.message}`);
+    }
+  };
+  
   const resetNewUser = () => {
     setNewUser({
       no: "",
@@ -170,7 +233,7 @@ const EvidenceSpi = () => {
           if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
             const formattedData = response.data.payload.data.map(item => ({
               no: item.i_audevd,
-              dataAndDocumentNeeded: item.n_audevd_title,
+              dataAndDocumentNeeded: item.n_audevd_tittle,
               phase: item.n_audevd_phs,
               status: convertStatus(item.c_audevd_stat),
               deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
@@ -303,7 +366,7 @@ const EvidenceSpi = () => {
             type="text"
             name="dataAndDocumentNeeded"
             value={newUser.dataAndDocumentNeeded}
-            onChange={handleInputChange}
+            onChange={handleUpdateUser}
             className="modal-input"
           />
           <label>Phase</label>
@@ -311,7 +374,7 @@ const EvidenceSpi = () => {
             type="text"
             name="phase"
             value={newUser.phase}
-            onChange={handleInputChange}
+            onChange={handleUpdateUser}
             className="modal-input"
           />
           <label>Status</label>
@@ -319,7 +382,7 @@ const EvidenceSpi = () => {
             type="text"
             name="status"
             value={newUser.status}
-            onChange={handleInputChange}
+            onChange={handleUpdateUser}
             className="modal-input"
           />
           <label>Deadline</label>
@@ -327,7 +390,7 @@ const EvidenceSpi = () => {
             type="text"
             name="deadline"
             value={newUser.deadline}
-            onChange={handleInputChange}
+            onChange={handleUpdateUser}
             className="modal-input"
           />
           <label>Auditor</label>
@@ -335,7 +398,7 @@ const EvidenceSpi = () => {
             type="text"
             name="auditor"
             value={newUser.auditor}
-            onChange={handleInputChange}
+            onChange={handleUpdateUser}
             className="modal-input"
           />
         </div>

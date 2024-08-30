@@ -7,6 +7,7 @@ const {
     saveDataExcel,
     DownloadFileExcel,
     GetDataEvidence,
+    PutDataEvidence,
     GetEvidence,
     getDataRemarks,
     GetSelectedAuditee,
@@ -40,7 +41,6 @@ router.use(express.urlencoded({ extended: true }));
 
 
 // GET
-// Definisikan route untuk menampilkan template file excel
 router.get('/TemplateFileExcel', DownloadFileExcel);
 router.get('/import-excel-db', importExcelToDB);
 router.get('/tmau-devd', GetDataEvidence);
@@ -81,6 +81,7 @@ router.post('/reply-komen', ReplyKomen);
 // PUT
 // Definisikan route untuk update karyawan
 // router.put('/update-karyawan/:n_audusr_usrnm', updateKaryawan); 
+router.put('/edit-data', PutDataEvidence);
 router.put('/up-status', updateStatus);
 
 
