@@ -42,60 +42,58 @@ const GetAuditee = async (req, res) => {
 
 //-- MEMILIH AUDITEE  masih ada kesalahan
 const UpdateAuditee = async (req, res) => {
-    const { key1, key2 } = req.body;  // Mengambil KEY1 dan KEY2 dari body request
-  
+  console.log('Data yang diterima di backend:', req.body);
     try {
-      const result = await pool.query(
-        'UPDATE TMAUDEVD SET N_AUDUSR_USRNM = $1 WHERE I_AUDEVD_AUD = $2',
-        [key2, key1]
-      );
+      // Mendapatkan data yang dikirim melalui request
+      const { i_audevd, n_audusr_usrnm } = req.body;
+      const client = await pool.connect();
+    
+      const updateQuery = `
+      update tmaudevd
+      set i_audevd_aud = tmaudusr.n_audusr_usrnm
+      from tmaudusr
+      where tmaudevd.i_audevd_aud = cast(tmaudevd.i_audevd as varchar);
+
+      `;
+      const result = await client.query(updateQuery)
   
       // Memastikan bahwa update berhasil dilakukan
-      if (result.rowCount > 0) {
+     
         response(200, result.rowCount, 'Auditee berhasil diperbarui', res);
-      } else {
-        response(404, [], 'Auditee tidak ditemukan', res);
-      }
     } catch (error) {
       console.error('Error executing update', error.stack);
       response(500, [], 'Terjadi kesalahan saat memperbarui Auditee', res);
     }
 };
 
-// -- MENAMPILKAN AUDITEE
-const GetSelectedAuditee = async (req, res) => {
-    try {
+// -- MENAMPILKAN AUDITEE // belum dijalankan di lewat dulu
+const GetMenampilkanAuditee = async (req, res) => {
+  try {
+      // Query dengan huruf kecil
       const result = await pool.query(`
-        SELECT B.N_AUDUSR_USRNM, B.N_AUDUSR_NM
-        FROM TMAUDEVD A, TMAUDUSR B
-        WHERE A.I_AUDEVD_AUD = B.N_AUDUSR_USRNM
+          select b.n_audusr_usrnm, b.n_audusr_nm
+          from tmaudevd a 
+          join tmaudusr b on a.i_audevd_aud = b.n_audusr_usrnm
       `);
-  
+
       // Mengirimkan data auditee yang terpilih
       response(200, result.rows, 'Data Auditee terpilih ditemukan', res);
-    } catch (error) {
+  } catch (error) {
       console.error('Error executing query', error.stack);
       response(500, [], 'Terjadi kesalahan saat mengambil data Auditee terpilih', res);
-    }
+  }
 };
+
+
 
 ///////////////////////////////////////////////
 // DETAILING PROCESSING DATA EVIDENCE AFTER ADMIN AUDIT IT INPUT AUDITEE
 
 // MENAMPILKAN DATA EVIDENCE
-const GetEvidence = async (req, res) => {
-  const postgres = `SELECT * FROM tmaudevd WHERE c_audevd_yr = $1`;
-  pool.query(postgres, [req.params.year], (error, result) => {
-    if (error) {
-      console.error("Error executing query", error.stack);
-      return response(500, null, "Terjadi kesalahan pada server", res);
-    }
-    response(200, result.rows, "Menampilkan data evidence SPI", res);
-  });
-}
+// SUDAH ADA DI ATAS SAMA 
 
-//MENAMPILKAN AUDITEE
-//NARIK YANG DI ATAS UDAH ADA 
+// MENAMPILKAN AUDITEE
+//  NARIK YANG DI ATAS UDAH ADA 
 
 
 ///////////////////////////////////////////////
@@ -106,35 +104,78 @@ const GetEvidence = async (req, res) => {
 
 // MENAMPILKAN DATA REMARKS BY AUDITEE :
 const getDataRemarks = async (req, res) => {
-  const key = req.query.key; //TMAUDEVD.I_AUDEVD  Mendapatkan nilai dari query parameter atau bisa dari sumber lain
-  const postgres = `
-    SELECT B.N_AUDEVDFILE_FILE, B.E_AUDEVDFILE_DESC FROM TMAUDEVDFILEDTL A,
-    TMAUDEVDFILE B WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDFILE = B.I_AUDEVDFILE
-  `;
-  pool.query(postgres, [key], (error, result) => {
-    if (error) {
-      console.error("Error executing query", error.stack);
+  console.log("Full request body:", req.body);
+  console.log("Query params:", req.query);
+  console.log("URL params:", req.params);
+
+  // Coba ambil key dari berbagai sumber
+  const key = req.body.key || req.query.key || req.params.key;
+
+  console.log("Extracted key:", key);
+
+  if (key === undefined || key === null || key === '') {
+    // Jika key tidak ada, ambil semua data
+    const postgres = `
+      SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 
+      FROM TMAUDEVDFILE
+    `;
+
+    try {
+      const result = await pool.query(postgres);
+      console.log("Query result:", result.rows);
+      return response(200, result.rows, "Menampilkan semua data remarks", res);
+    } catch (error) {
+      console.error("Error executing query", error);
       return response(500, null, "Terjadi kesalahan pada server", res);
     }
-    response(200, result.rows, "Menampilkan data diupload oleh Auditee ", res);
-  });
-}
+  }
+
+  // Jika key ada, gunakan untuk filter
+  const postgres = `
+    SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 
+    FROM TMAUDEVDFILE
+    WHERE i_audevdfile = $1 
+  `;
+
+  try {
+    console.log("Executing query with key:", key);
+    const result = await pool.query(postgres, [key]);
+    
+    console.log("Query result:", result.rows);
+    console.log("Number of rows returned:", result.rowCount);
+    
+    if (result.rows.length === 0) {
+      return response(404, null, `Data tidak ditemukan untuk key: ${key}`, res);
+    }
+    
+    response(200, result.rows, "Menampilkan data remarks by auditee", res);
+  } catch (error) {
+    console.error("Error executing query", error);
+    response(500, null, "Terjadi kesalahan pada server", res);
+  }
+};
+
+// MENAMPILKAN AUDITEE
+// SUDAH ADA DI ATAS SAMA
 
 // UPDATE STATUS ADMIN AUDIT IT 
 const updateStatus = async (req, res) => {
-  const key = req.body.I_AUDEVD; // Mengambil nilai I_AUDEVD dari request body
-  const postgres = `UPDATE TMAUDEVD SET C_AUDEVD_STATCMPL = 2 WHERE I_AUDEVD = $1`;
+  const key = req.body.I_AUDEVD;
+  const postgres = `update tmaudevd set c_audevd_statcmpl = 2 where i_audevd = $1 returning *
+`;
 
-  pool.query(postgres, [key], (error, result) => {
-    if (error) {
-      console.error("Error executing query", error.stack);
-      return response(500, null, "Terjadi kesalahan pada server", res);
+  try {
+    const result = await pool.query(postgres, [key]);
+    if (result.rows.length > 0) {
+      res.status(200).json({ message: "Update Status Berhasil", data: result.rows[0] });
+    } else {
+      res.status(404).json({ message: "Data tidak ditemukan" });
     }
-    response(200, result.rows, "Update Status Berhasil", res);
-  });
-}
-
-
+  } catch (error) {
+    console.error("Error executing query", error.stack);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
+  }
+};
 ///////////////////////////////////////////////////////
 // --- DETAIL PROCESSING DATA EVIDENCE ADMIN AUDIT IT REVIEW FILE EVIDENCE --- //
 
@@ -424,8 +465,7 @@ module.exports = {
     GetDataEvidence,
     GetAuditee,
     UpdateAuditee,
-    GetSelectedAuditee,
-    GetEvidence,
+    GetMenampilkanAuditee,
     getDataRemarks,
     updateStatus,
     GetTitle,

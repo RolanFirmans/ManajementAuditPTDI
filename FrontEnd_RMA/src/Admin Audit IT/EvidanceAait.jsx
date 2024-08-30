@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Modal from "react-modal";
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
@@ -15,7 +15,8 @@ const EvidenceAait = () => {
   const [auditeeData, setAuditeeData] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentEditOrder, setCurrentEditOrder] = useState(null);
-  const [selectedAuditee, setSelectedAuditee] = useState([]);
+  const [remarksData, setRemarksData] = useState([]);
+  const [selectedAuditees, setSelectedAuditees] = useState({});
 
   const [newUser, setNewUser] = useState({
     no: "",
@@ -59,21 +60,14 @@ const EvidenceAait = () => {
     }
   };
 
-  const convertStatusComplete = (statusComplete) => {
-    switch (statusComplete) {
-      case 0:
-        return { text: "NOT COMPLETE", backgroundColor: "red", color: "white" };
-      case 1:
-        return { text: "COMPLETE AUDITEE", backgroundColor: "orange", color: "white" };
-      case 2:
-        return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
-      case 3:
-        return { text: "COMPLETE SPI", backgroundColor: "green", color: "white" };
-      case 4:
-        return { text: "COMPLETE AUDITOR", backgroundColor: "blue", color: "white" };
-      default:  
-        return { text: "UNKNOWN STATUS", backgroundColor: "grey", color: "white" };
+  const convertStatusComplete = (statusComplete, hasRemarks = false) => {
+    if (statusComplete === 2) {
+      return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
     }
+    if (hasRemarks) {
+      return { text: "COMPLETE AUDITEE", backgroundColor: "orange", color: "white" };
+    }
+    return { text: "NOT COMPLETE", backgroundColor: "red", color: "white" };
   };
 
   useEffect(() => {
@@ -92,6 +86,7 @@ const EvidenceAait = () => {
   const handleEditUser = (order) => {
     setCurrentEditOrder(order);
     setIsEditModalOpen(true);
+    fetchRemarks(order.no); 
   };
 
   const handleSaveEditUser = () => {
@@ -129,64 +124,64 @@ const EvidenceAait = () => {
     ? orders.filter((order) => order.publishingYear === parseInt(selectedYear))
     : orders;
 
-  useEffect(() => {
-    const fetchDataByYear = async () => {
-      if (selectedYear) {
-        try {
-          const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
-            params: { year: selectedYear }
-          });
-          if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-            const formattedData = response.data.payload.data.map(item => ({
-              no: item.i_audevd,
-              dataAndDocumentNeeded: item.n_audevd_title,
-              phase: item.n_audevd_phs,
-              status: convertStatus(item.c_audevd_stat),
-              deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-              remarksByAuditee: item.i_entry,
-              remarksByAuditor: item.n_audevd_audr,
-              auditee: item.i_audevd_aud,
-              auditor: convertAuditor(item.c_audevd_audr),
-              statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
-              publishingYear: new Date(item.c_audevd_yr).getFullYear(),
-            }));
-            setOrders(formattedData);
-          } else {
-            setOrders([]);
-            console.log('Data tidak ditemukan atau tidak dalam format array');
-          }            
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        }
-      } else {
-        console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
-      }
-    };
-
-    fetchDataByYear();
-  }, [selectedYear]);
-
-  // --MENAMPILKAN DATA AUDITEE
-  useEffect(() => {
-    const fetchAuditeeData = async () => {
+  const fetchDataByYear = useCallback(async (year) => {
+    if (year) {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`);
-        if (response.data && Array.isArray(response.data.payload.data)) {
-          setAuditeeData(response.data.payload.data);
+        const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
+          params: { year: year }
+        });
+        if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+          const formattedData = response.data.payload.data.map(item => ({
+            no: item.i_audevd,
+            dataAndDocumentNeeded: item.n_audevd_tittle,
+            phase: item.n_audevd_phs,
+            status: convertStatus(item.c_audevd_stat),
+            deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
+            remarksByAuditee: "",
+            remarksByAuditor: item.n_audevd_audr,
+            auditee: { nik: '', name: '' },
+            auditor: convertAuditor(item.c_audevd_audr),
+            statusComplete: convertStatusComplete(item.c_audevd_statcmpl, false),
+            publishingYear: new Date(item.c_audevd_yr).getFullYear(),
+          }));
+          setOrders(formattedData);
+          formattedData.forEach(order => {
+            fetchRemarks(order.no);
+            GetAuditee(order.no);
+          });
         } else {
-          console.error('Expected an array but got:', response.data.payload.data);
-          setAuditeeData([]);
+          setOrders([]);
+          console.log('Data tidak ditemukan atau tidak dalam format array');
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+      }
+    } else {
+      console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
+    }
+  }, []);
+
+// --MENAMPILKAN DATA AUDITEE
+useEffect(() => {
+  const fetchAuditeeData = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`);
+      if (response.data && Array.isArray(response.data.payload.data)) {
+        setAuditeeData(response.data.payload.data);
+      } else {
+        console.error('Expected an array but got:', response.data.payload.data);
         setAuditeeData([]);
       }
-    };
-
-    if (isEditModalOpen) {
-      fetchAuditeeData();
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setAuditeeData([]);
     }
-  }, [isEditModalOpen]);
+  };
+
+  if (isEditModalOpen) {
+    fetchAuditeeData();
+  }
+}, [isEditModalOpen]);
 
   const filteredData = Array.isArray(auditeeData)
     ? auditeeData.filter(
@@ -197,59 +192,140 @@ const EvidenceAait = () => {
       )
     : [];
 
-// MEMILIH AUDITEE
-const hadleSelectAuditee = async () => {
-  if (!currentEditOrder) return;
+// -- MEMILIH AUDITEE
+// -- YANG MEMILIH MASIH ERROR DI LEWAT DULU 
+const handleCheckboxChange = (nik) => {
+  setSelectedAuditees(prev => ({
+    ...prev,
+    [currentEditOrder.no]: nik
+  }));
+};
 
-  console.log("Current Edit Order Auditee:", currentEditOrder.auditee);
-  console.log("Selected Auditee:", selectedAuditee.n_audusr_usrnm);
+const handleSelectAuditee = async () => {
+  const selectedNik = selectedAuditees[currentEditOrder.no];
+  if (!selectedNik) {
+    console.error("Tidak ada auditee yang dipilih");
+    return;
+  }
+
+  const requestData = {
+    i_audevd: currentEditOrder.no,
+    n_audusr_usrnm: selectedNik
+  };
+  console.log('Data yang dikirim:', requestData);
 
   try {
-    const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-auditee`, {
-      key1: currentEditOrder.auditee, 
-      key2: selectedAuditee.n_audusr_usrnm
-    });
+    const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-auditee`, requestData);
+    
+    console.log('Respons dari server:', response.data);
 
-    if (response.status === 200) {
-      console.log('Auditee berhasil diperbarui');
-      // Fetch data terbaru setelah update
+    if (response.data && response.data.payload && response.data.payload.message === "Auditee berhasil diperbarui") {
+      console.log("Auditee berhasil diperbarui");
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.no === currentEditOrder.no 
+          ? { ...order, auditee: { nik: selectedNik, name: auditeeData.find(a => a.n_audusr_usrnm === selectedNik)?.n_audusr_nm } } 
+          : order
+      ));
+      setIsEditModalOpen(false);
     } else {
-      console.error('Gagal memperbarui auditee:', response.data.message || 'Tidak ada pesan error dari server');
+      console.error("Gagal memperbarui auditee:", response.data.payload ? response.data.payload.message : "Respons tidak valid");
     }
   } catch (error) {
-    console.error('Error updating auditee:', error.response ? error.response.data : error.message);
+    console.error("Error saat memperbarui auditee:", error.response ? error.response.data : error.message);
   }
 };
 
-// -- MENAMPILKAN AUDITEE
-const handleSelect = async () => {
+
+// -- MENAMPILKAN AUDITEE --
+const GetAuditee = async (orderNo) => {
   try {
     const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/select-auditee`);
-
-    // Pastikan respons memiliki payload dan data
-    if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-      const formattedData = response.data.payload.data.map(item => ({
-        nik: item.n_audusr_usrnm,
-        nama: item.n_audusr_nm
+    if (response.data && Array.isArray(response.data.payload.data)) {
+      const formattedData = response.data.payload.data.map(auditee => ({
+        n_audusr_usrnm: auditee.n_audusr_usrnm || '',
+        n_audusr_nm: auditee.n_audusr_nm || ''
       }));
-
-      setSelectedAuditee(formattedData); // Update state dengan data yang sudah diformat
+      
+      // Update the specific order with auditee data
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.no === orderNo 
+          ? { ...order, auditee: { nik: formattedData[0]?.n_audusr_usrnm, name: formattedData[0]?.n_audusr_nm } } 
+          : order
+      ));
     } else {
-      console.error('Data tidak valid:', response.data);
-      setSelectedAuditee([]); // Set state dengan array kosong jika data tidak valid
+      console.error('Expected an array but got:', response.data.payload.data);
     }
   } catch (error) {
-    console.error('Error fetching selected auditee data:', error);
-    setSelectedAuditee([]); // Set state dengan array kosong jika terjadi kesalahan
+    console.error('Error fetching data:', error);
   }
-
-  // Tutup modal dan reset currentEditOrder jika diperlukan
-  setIsEditModalOpen(false);
-  setCurrentEditOrder(null);
 };
 
 
+////////////////////////////////////
 
+// MENAMPILKAN DATA REMARKS BY AUDITEE START :
+const fetchRemarks = async (key) => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/selected-remarks-auditee`, {
+      params: { key: key }
+    });
+    if (response.data && response.data.payload && response.data.payload.data && response.data.payload.data.length > 0) {
+      const remarksByAuditee = response.data.payload.data[0].e_audevdfile_desc || "";
+      const hasRemarks = remarksByAuditee.trim() !== "";
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.no === key ? { 
+          ...order, 
+          remarksByAuditee,
+          statusComplete: order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT"
+            ? order.statusComplete
+            : convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : 0, hasRemarks)
+        } : order
+      ));
+    } else {
+      
+    }
+  } catch (error) {
+    console.error('Error fetching remarks for key', key, ':', error);
+    
+  }
+};
+
+const handleUpdateStatus = async (order) => {
+  try {
+    const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-status`, {
+      I_AUDEVD: order.no
+    });
+
+    if (response.data && response.data.message === "Update Status Berhasil") {
+      console.log("Status berhasil diperbarui");
+      // Perbarui state lokal
+      setOrders(prevOrders => prevOrders.map(o => 
+        o.no === order.no 
+          ? { ...o, statusComplete: convertStatusComplete(2, true) } 
+          : o
+      ));
+      // Jangan panggil fetchDataByYear di sini, karena ini akan menimpa perubahan yang baru saja kita buat
+    } else {
+      console.error("Gagal memperbarui status:", response.data ? response.data.message : "Respons tidak valid");
+    }
+  } catch (error) {
+    console.error("Error saat memperbarui status:", error.response ? error.response.data : error.message);
+  }
+};
+
+useEffect(() => {
+    if (selectedYear) {
+      fetchDataByYear(selectedYear);
+    }
+  }, [selectedYear, fetchDataByYear]);
+
+
+useEffect(() => {
+  console.log('Orders updated:', orders);
+}, [orders]);
+
+
+// MENAMPILKAN DATA REMARKS BY AUDITEE END :
 
   return (
     <div className="evidence-content">
@@ -261,7 +337,7 @@ const handleSelect = async () => {
           onChange={handleYearChange}
           showYearPicker
           dateFormat="yyyy"
-          placeholderText="Select year"
+          placeholderText="Select year" 
         />
       </div>
       <div className="evidence-table">
@@ -281,34 +357,43 @@ const handleSelect = async () => {
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((order, index) => (
-                <tr key={order.no || index}>
-                  <td>{order.no}</td>
-                  <td>{order.dataAndDocumentNeeded}</td>
-                  <td>{order.phase}</td>
-                  <td>{order.status}</td>
-                  <td>{order.deadline}</td>
-                  <td>{order.remarksByAuditee}</td>
-                  <td>{order.remarksByAuditor}</td>
-                  <td>{order.auditee}</td>
-                  <td>{order.auditor}</td>
-                  <td style={{ backgroundColor: order.statusComplete.backgroundColor, color: order.statusComplete.color }}>
-                    {order.statusComplete.text}
-                  </td>
-                  <td>
-                    <button onClick={() => handleEditUser(order)}>Edit</button>
-                    <button onClick={() => handleDeleteUser(order)}>Delete</button>
-                  </td>
+               <tbody>
+                  {filteredOrders.length > 0 ? (
+                  filteredOrders.map((order, index) => {
+                  // Cari data auditee berdasarkan `order.auditee`
+                  const auditee = auditeeData.find(auditee => auditee.n_audusr_usrnm === order.auditee) || {};
+                  
+                  return (
+                    <tr key={order.no || index}>
+                      <td>{order.no}</td>
+                      <td>{order.dataAndDocumentNeeded}</td>
+                      <td>{order.phase}</td>
+                      <td>{order.status}</td>
+                      <td>{order.deadline}</td>
+                      <td>{order.remarksByAuditee !== undefined ? order.remarksByAuditee : "Loading..." }</td>
+                      <td>{order.remarksByAuditor}</td>
+                      <td>{order.auditee.nik && order.auditee.name ? `${order.auditee.nik} - ${order.auditee.name}` : "Loading..."}</td>
+                      <td>{order.auditor}</td>
+                      <td style={{ backgroundColor: order.statusComplete.backgroundColor, color: order.statusComplete.color }}>
+                        {order.statusComplete.text}
+                      </td>
+                      <td>
+                        <button onClick={() => handleEditUser(order)}>Edit</button>
+                        <button onClick={() => handleDeleteUser(order)}>Delete</button>
+                        {order.statusComplete.backgroundColor === "orange" && (
+                                  <button onClick={() => handleUpdateStatus(order)}>Update Status</button>
+                                )}
+          
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="11">Tidak ada data untuk ditampilkan</td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="11">Tidak ada data untuk ditampilkan</td>
-              </tr>
-            )}
-          </tbody>
+              )}
+            </tbody>
         </table>
       </div>
 
@@ -331,7 +416,6 @@ const handleSelect = async () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-
             <table className="auditee-table">
               <thead>
                 <tr>
@@ -347,7 +431,11 @@ const handleSelect = async () => {
                   filteredData.map((item, index) => (
                     <tr key={item.n_audusr_usrnm || index}>
                       <td>{index + 1}</td>
-                      <td><input type="checkbox" onChange={() => hadleSelectAuditee(item.n_audusr_usrnm)}/></td>
+                      <td><input 
+                          type="checkbox" 
+                          checked={selectedAuditees[currentEditOrder?.no] === item.n_audusr_usrnm}
+                          onChange={() => handleCheckboxChange(item.n_audusr_usrnm)}
+                        /></td>
                       <td>{item.n_audusr_usrnm}</td>
                       <td>{item.n_audusr_nm}</td>
                       <td>{item.organisasi}</td>
@@ -360,15 +448,9 @@ const handleSelect = async () => {
                 )}
               </tbody>
             </table>
-
-            <div className="pagination">
-              <span>Showing 1 to {filteredData.length} of {auditeeData.length} entries</span>
-              {/* Add pagination controls if needed */}
-            </div>
-
             <div className="modal-actions">
               <button onClick={() => setIsEditModalOpen(false)}>Cancel</button>
-              <button className="select-btn" onClick={handleSelect}>Select</button>
+              <button className="select-btn" onClick={handleSelectAuditee} >Select</button>
             </div>
           </div>
         </div>

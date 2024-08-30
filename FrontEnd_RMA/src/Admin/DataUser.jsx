@@ -333,7 +333,7 @@ const handleDeleteUser = async (NIK) => {
         <div className="modal-actions">
           <button onClick={() => setIsAddUserModalOpen(false)} className="modal-cancel">Cancel</button>
           <button onClick={newUser.No ? handleUpdateUser : handleAddUser} className="modal-add">
-            {newUser.NIK ? 'Update' : 'Add'}
+            {newUser.No ? 'Update' : 'Add'}
           </button>
         </div>
       </Modal>
