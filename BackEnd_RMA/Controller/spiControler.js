@@ -2,7 +2,10 @@ const pool = require('../utils/dbaudit');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const multer = require('multer');
+const ExcelJS = require('exceljs');
 const path = require('path');
+const response = require('../response');
+
 
 // Fungsi untuk memformat tanggal
 const formatDate = (dateString) => {
@@ -218,6 +221,39 @@ const GetDataEvidence = async (req, res) => {
 
 
 // -- EDIT DATA EVIDENCE
+
+const PutDataEvidence = async (req, res) => {
+  try {
+    const {
+      key,    // I_AUDEVD
+      key1,   // AUDEVD_TITTLE
+      key2,   // N_AUDEVD_PHS
+      key3,   // C_AUDEVD_STAT
+      key4,   // D_AUDEVD_DDL
+      key5    // C_AUDEVD_AUDR
+    } = req.body;
+    
+    const result = await pool.query(`
+      UPDATE  tmaudevd
+      SET 
+        n_audevd_tittle = $1, 
+        n_audevd_phs = $2, 
+        c_audevd_stat = $3,
+        d_audevd_ddl = $4, 
+        c_audevd_audr = $5
+      WHERE i_audevd = $6
+    `, [key1, key2, key3, key4, key5, key]
+    );
+    console.log('Update Data Evience SPI', result.rows);
+    
+    // Menggunakan fungsi response yang sudah didefinisikan sebelumnya
+    response(200, result.rows, 'Update Tidak Berhasil', res);
+  } catch (error) {
+    console.error('Error executing query', error.stack);
+
+    response(500, [], 'Terjadi kesalahan', res);
+  }
+};
 
 
 
@@ -727,6 +763,7 @@ module.exports = {
   saveDataExcel,
   DownloadFileExcel,
   GetDataEvidence,
+  PutDataEvidence,
   GetEvidence,
   getDataRemarks,
   GetSelectedAuditee,

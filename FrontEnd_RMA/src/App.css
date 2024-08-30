@@ -755,6 +755,25 @@ button {
 .dropdownAuditee.open .submenuAuditee {
   display: block;
 }
+
+/* UPLOAD FILE */
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  margin-top: 10px;
+}
+
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+
+
+
+
 /* END AUDITEE */
 
 /* START AUDITOR */

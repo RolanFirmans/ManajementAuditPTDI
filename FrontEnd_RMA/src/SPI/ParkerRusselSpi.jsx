@@ -75,64 +75,64 @@ const ParkerRussel = () => {
     }
   }, []);
 
-  useEffect(() => {
-    console.log('useEffect dijalankan'); // Logging pertama
-    const fetchDataByYear = async () => {
-      if (selectedYear) {
-        try {
-          // Fetch data berdasarkan tahun
-          const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
-            params: { year: selectedYear }
-          });
+  // useEffect(() => {
+  //   console.log('useEffect dijalankan'); // Logging pertama
+  //   const fetchDataByYear = async () => {
+  //     if (selectedYear) {
+  //       try {
+  //         // Fetch data berdasarkan tahun
+  //         const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
+  //           params: { year: selectedYear }
+  //         });
   
-          if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-            // Map data untuk format yang dibutuhkan
-            const formattedData = await Promise.all(response.data.payload.data.map(async (item) => {
-              // Panggil backend untuk mendapatkan data evidence auditor
-              const auditorResponse = await axios.get(`${import.meta.env.VITE_HELP_DESK}/selected-evidence-parker-russel/${item.c_audevd_audr}`);
-              const auditor = auditorResponse.data;
+  //         if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+  //           // Map data untuk format yang dibutuhkan
+  //           const formattedData = await Promise.all(response.data.payload.data.map(async (item) => {
+  //             // Panggil backend untuk mendapatkan data evidence auditor
+  //             const auditorResponse = await axios.get(`${import.meta.env.VITE_HELP_DESK}/selected-evidence-parker-russel/${item.c_audevd_audr}`);
+  //             const auditor = auditorResponse.data;
   
-              return {
-                no: item.i_audevd,
-                dataAndDocumentNeeded: item.n_audevd_title,
-                phase: item.n_audevd_phs,
-                status: convertStatus(item.c_audevd_stat),
-                deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-                remarksByAuditee: item.i_entry,
-                remarksByAuditor: item.n_audevd_audr,
-                auditee: item.i_audevd_aud,
-                auditor: auditor, // Hasil dari backend
-                statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
-                publishingYear: new Date(item.c_audevd_yr).getFullYear(),
-              };
-            }));
+  //             return {
+  //               no: item.i_audevd,
+  //               dataAndDocumentNeeded: item.n_audevd_title,
+  //               phase: item.n_audevd_phs,
+  //               status: convertStatus(item.c_audevd_stat),
+  //               deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
+  //               remarksByAuditee: item.i_entry,
+  //               remarksByAuditor: item.n_audevd_audr,
+  //               auditee: item.i_audevd_aud,
+  //               auditor: auditor, // Hasil dari backend
+  //               statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
+  //               publishingYear: new Date(item.c_audevd_yr).getFullYear(),
+  //             };
+  //           }));
 
   
-            // Filter data API berdasarkan auditor "DGCA"
-            const FinanceAPIOrders = formattedData.filter(
-              (order) => order.auditor === "ParkerRussel"
-            );
-            const orderedFinanceAPIOrders = updateOrderNumbers(FinanceAPIOrders);
+  //           // Filter data API berdasarkan auditor "DGCA"
+  //           const FinanceAPIOrders = formattedData.filter(
+  //             (order) => order.auditor === "ParkerRussel"
+  //           );
+  //           const orderedFinanceAPIOrders = updateOrderNumbers(FinanceAPIOrders);
   
-            // Gabungkan dengan data dari localStorage
-            setOrders(prevOrders => {
-              const allOrders = [...prevOrders, ...orderedFinanceAPIOrders];
-              return updateOrderNumbers(allOrders);
-            });
-          } else {
-            setOrders([]);
-            console.log('Data tidak ditemukan atau tidak dalam format array');
-          }
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        }
-      } else {
-        console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
-      }
-    };
+  //           // Gabungkan dengan data dari localStorage
+  //           setOrders(prevOrders => {
+  //             const allOrders = [...prevOrders, ...orderedFinanceAPIOrders];
+  //             return updateOrderNumbers(allOrders);
+  //           });
+  //         } else {
+  //           setOrders([]);
+  //           console.log('Data tidak ditemukan atau tidak dalam format array');
+  //         }
+  //       } catch (error) {
+  //         console.error('Error fetching data:', error);
+  //       }
+  //     } else {
+  //       console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
+  //     }
+  //   };
   
-    fetchDataByYear();
-  }, [selectedYear])
+  //   fetchDataByYear();
+  // }, [selectedYear])
 
   const updateOrderNumbers = (ordersList) => {
     return ordersList.map((order, index) => ({

@@ -41,20 +41,20 @@ const DGCA = () => {
     }
   };
 
-  // const convertAuditor = (auditor) => {
-  //   switch (auditor) {
-  //     case 1:
-  //       return "DGCA";
-  //     case 2:
-  //       return "Finance";
-  //     case 3:
-  //       return "ITML";
-  //     case 4:
-  //       return "ParkerRussel";
-  //     default:
-  //       return "unknown";
-  //   }
-  // };
+  const convertAuditor = (auditor) => {
+    switch (auditor) {
+      case 1:
+        return "DGCA";
+      case 2:
+        return "Finance";
+      case 3:
+        return "ITML";
+      case 4:
+        return "ParkerRussel";
+      default:
+        return "unknown";
+    }
+  };
 
   const convertStatusComplete = (statusComplete) => {
     switch (statusComplete) {
@@ -85,64 +85,68 @@ const DGCA = () => {
     }
   }, []);
 
-  useEffect(() => {
-    console.log('useEffect dijalankan'); // Logging pertama
-    const fetchDataByYear = async () => {
-      if (selectedYear) {
-        try {
-          // Fetch data berdasarkan tahun
-          const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
-            params: { year: selectedYear }
-          });
+  // useEffect(() => {
+  //   console.log('useEffect dijalankan'); // Logging pertama
+  //   const fetchDataByYear = async () => {
+  //     if (selectedYear) {
+  //       try {
+  //         // Fetch data berdasarkan tahun
+  //         const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
+  //           params: { year: selectedYear }
+  //         });
   
-          if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-            // Map data untuk format yang dibutuhkan
-            const formattedData = await Promise.all(response.data.payload.data.map(async (item) => {
-              // Panggil backend untuk mendapatkan data evidence auditor
-              const auditorResponse = await axios.get(`${import.meta.env.VITE_HELP_DESK}/selected-evidence-DGCA/${item.c_audevd_audr}`);
-              const auditor = auditorResponse.data;
+  //         if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+  //           // Map data untuk format yang dibutuhkan
+  //           const formattedData = await Promise.all(response.data.payload.data.map(async (item) => {
+  //             // Panggil backend untuk mendapatkan data evidence auditor
+  //             const auditorResponse = await axios.get(`${import.meta.env.VITE_HELP_DESK}/selected-evidence-DGCA/${item.c_audevd_audr}`);
+  //             const auditor = auditorResponse.data;
   
-              return {
-                no: item.i_audevd,
-                dataAndDocumentNeeded: item.n_audevd_title,
-                phase: item.n_audevd_phs,
-                status: convertStatus(item.c_audevd_stat),
-                deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-                remarksByAuditee: item.i_entry,
-                remarksByAuditor: item.n_audevd_audr,
-                auditee: item.i_audevd_aud,
-                auditor: auditor, // Hasil dari backend
-                statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
-                publishingYear: new Date(item.c_audevd_yr).getFullYear(),
-              };
-            }));
+  //             // Debugging untuk memastikan nilai auditor
+  //             console.log('Auditor:', auditor);
+  //             const auditorName = convertAuditor(auditor);
+  //             console.log('Converted Auditor:', auditorName);
   
-            // Filter data API berdasarkan auditor "DGCA"
-            const dgcaAPIOrders = formattedData.filter(
-              (order) => order.auditor === "DGCA"
-            );
-            const orderedDGCAAPIOrders = updateOrderNumbers(dgcaAPIOrders);
+  //             return {
+  //               no: item.i_audevd,
+  //               dataAndDocumentNeeded: item.n_audevd_title,
+  //               phase: item.n_audevd_phs,
+  //               status: convertStatus(item.c_audevd_stat),
+  //               deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
+  //               remarksByAuditee: item.i_entry,
+  //               remarksByAuditor: item.n_audevd_audr,
+  //               auditee: item.i_audevd_aud,
+  //               auditor: auditorName, // Hasil dari backend yang dikonversi
+  //               statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
+  //               publishingYear: new Date(item.c_audevd_yr).getFullYear(),
+  //             };
+  //           }));
   
-            // Gabungkan dengan data dari localStorage
-            setOrders(prevOrders => {
-              const allOrders = [...prevOrders, ...orderedDGCAAPIOrders];
-              return updateOrderNumbers(allOrders);
-            });
-          } else {
-            setOrders([]);
-            console.log('Data tidak ditemukan atau tidak dalam format array');
-          }
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        }
-      } else {
-        console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
-      }
-    };
+  //           // Filter data API berdasarkan auditor "DGCA"
+  //           const dgcaAPIOrders = formattedData.filter(
+  //             (order) => order.auditor === "DGCA"
+  //           );
+  //           const orderedDGCAAPIOrders = updateOrderNumbers(dgcaAPIOrders);
   
-    fetchDataByYear();
-  }, [selectedYear]);
+  //           // Gabungkan dengan data dari localStorage
+  //           setOrders(prevOrders => {
+  //             const allOrders = [...prevOrders, ...orderedDGCAAPIOrders];
+  //             return updateOrderNumbers(allOrders);
+  //           });
+  //         } else {
+  //           setOrders([]);
+  //           console.log('Data tidak ditemukan atau tidak dalam format array');
+  //         }
+  //       } catch (error) {
+  //         console.error('Error fetching data:', error);
+  //       }
+  //     } else {  
+  //       console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
+  //     }
+  //   };
   
+  //   fetchDataByYear();
+  // }, [selectedYear]);  
   
 
   const updateOrderNumbers = (ordersList) => {
