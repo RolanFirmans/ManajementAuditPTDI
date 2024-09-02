@@ -12,7 +12,6 @@ const GetDataEvidence = async (req, res) => {
         'SELECT * FROM TMAUDEVD WHERE EXTRACT(YEAR FROM C_AUDEVD_YR) = $1', [currentYear]
       );
       
-      
       // Menggunakan fungsi response yang sudah didefinisikan sebelumnya
       response(200, result.rows, 'Data ditemukan', res);
     } catch (error) {
@@ -29,7 +28,6 @@ const GetAuditee = async (req, res) => {
       SELECT t.n_audusr_usrnm, t.n_audusr_nm, t.c_audusr_role, e.organisasi
       FROM TMAUDUSR t
       JOIN karyawan e ON t.n_audusr_usrnm = e.nik
-
     `);
 
     // Mengirimkan data Auditee dengan struktur JSON yang lebih baik
@@ -43,27 +41,31 @@ const GetAuditee = async (req, res) => {
 //-- MEMILIH AUDITEE  masih ada kesalahan
 const UpdateAuditee = async (req, res) => {
   console.log('Data yang diterima di backend:', req.body);
-    try {
-      // Mendapatkan data yang dikirim melalui request
-      const { i_audevd, n_audusr_usrnm } = req.body;
-      const client = await pool.connect();
+  try {
+    const { i_audevd, n_audusr_usrnm } = req.body;
     
-      const updateQuery = `
-      update tmaudevd
-      set i_audevd_aud = tmaudusr.n_audusr_usrnm
-      from tmaudusr
-      where tmaudevd.i_audevd_aud = cast(tmaudevd.i_audevd as varchar);
-
-      `;
-      const result = await client.query(updateQuery)
-  
-      // Memastikan bahwa update berhasil dilakukan
-     
-        response(200, result.rowCount, 'Auditee berhasil diperbarui', res);
-    } catch (error) {
-      console.error('Error executing update', error.stack);
-      response(500, [], 'Terjadi kesalahan saat memperbarui Auditee', res);
+    if (!i_audevd || !n_audusr_usrnm) {
+      return response(400, null, 'Data tidak lengkap', res);
     }
+
+    const updateQuery = `
+    UPDATE tmaudevd
+    SET i_audevd_aud = $2
+    WHERE i_audevd = $1
+    RETURNING *;
+    `;
+    
+    const result = await pool.query(updateQuery, [i_audevd, n_audusr_usrnm]);
+
+    if (result.rows.length > 0) {
+      response(200, result.rows[0], 'Auditee berhasil diperbarui', res);
+    } else {
+      response(404, null, 'Data tidak ditemukan', res);
+    }
+  } catch (error) {
+    console.error('Error executing update', error.stack);
+    response(500, null, 'Terjadi kesalahan saat memperbarui Auditee', res);
+  }
 };
 
 // -- MENAMPILKAN AUDITEE // belum dijalankan di lewat dulu

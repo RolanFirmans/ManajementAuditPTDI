@@ -143,12 +143,13 @@ const EvidenceAait = () => {
             auditor: convertAuditor(item.c_audevd_audr),
             statusComplete: convertStatusComplete(item.c_audevd_statcmpl, false),
             publishingYear: new Date(item.c_audevd_yr).getFullYear(),
+            i_audevd_aud: item.i_audevd_aud || '', 
           }));
           setOrders(formattedData);
-          formattedData.forEach(order => {
-            fetchRemarks(order.no);
-            GetAuditee(order.no);
-          });
+          for (const order of formattedData) {
+            await GetAuditee(order.no, order.i_audevd_aud);
+            await fetchRemarks(order.no);
+          }
         } else {
           setOrders([]);
           console.log('Data tidak ditemukan atau tidak dalam format array');
@@ -217,9 +218,7 @@ const handleSelectAuditee = async () => {
   try {
     const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-auditee`, requestData);
     
-    console.log('Respons dari server:', response.data);
-
-    if (response.data && response.data.payload && response.data.payload.message === "Auditee berhasil diperbarui") {
+    if (response.data && response.data.payload) {
       console.log("Auditee berhasil diperbarui");
       setOrders(prevOrders => prevOrders.map(order => 
         order.no === currentEditOrder.no 
@@ -227,39 +226,55 @@ const handleSelectAuditee = async () => {
           : order
       ));
       setIsEditModalOpen(false);
+      setSelectedAuditees({});
     } else {
-      console.error("Gagal memperbarui auditee:", response.data.payload ? response.data.payload.message : "Respons tidak valid");
+      console.error("Gagal memperbarui auditee:", response.data ? response.data.message : "Respons tidak valid");
     }
   } catch (error) {
     console.error("Error saat memperbarui auditee:", error.response ? error.response.data : error.message);
   }
 };
 
-
 // -- MENAMPILKAN AUDITEE --
-const GetAuditee = async (orderNo) => {
+const GetAuditee = async (orderNo, i_audevd_aud) => {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/select-auditee`);
-    if (response.data && Array.isArray(response.data.payload.data)) {
-      const formattedData = response.data.payload.data.map(auditee => ({
-        n_audusr_usrnm: auditee.n_audusr_usrnm || '',
-        n_audusr_nm: auditee.n_audusr_nm || ''
-      }));
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/select-auditee`, {
+      params: { i_audevd: orderNo }
+    });
+    if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+      const auditeeDataArray = response.data.payload.data;
+      let matchingAuditee;
+
+      if (i_audevd_aud) {
+        matchingAuditee = auditeeDataArray.find(auditee => auditee.n_audusr_usrnm === i_audevd_aud);
+      } else if (auditeeDataArray.length > 0) {
+        // Jika i_audevd_aud undefined, ambil auditee pertama dari array
+        matchingAuditee = auditeeDataArray[0];
+        console.log(`i_audevd_aud undefined untuk order ${orderNo}, menggunakan auditee pertama`);
+      }
       
-      // Update the specific order with auditee data
-      setOrders(prevOrders => prevOrders.map(order => 
-        order.no === orderNo 
-          ? { ...order, auditee: { nik: formattedData[0]?.n_audusr_usrnm, name: formattedData[0]?.n_audusr_nm } } 
-          : order
-      ));
+      if (matchingAuditee) {
+        setOrders(prevOrders => prevOrders.map(order => 
+          order.no === orderNo 
+            ? { 
+                ...order, 
+                auditee: {
+                  nik: matchingAuditee.n_audusr_usrnm,
+                  name: matchingAuditee.n_audusr_nm
+                }
+              } 
+            : order
+        ));
+      } else {
+        console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`);
+      }
     } else {
-      console.error('Expected an array but got:', response.data.payload.data);
+      console.error(`Respons tidak valid untuk order ${orderNo}:`, response.data);
     }
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error(`Error mengambil data auditee untuk order ${orderNo}:`, error);
   }
 };
-
 
 ////////////////////////////////////
 
@@ -372,8 +387,13 @@ useEffect(() => {
                       <td>{order.deadline}</td>
                       <td>{order.remarksByAuditee !== undefined ? order.remarksByAuditee : "Loading..." }</td>
                       <td>{order.remarksByAuditor}</td>
-                      <td>{order.auditee.nik && order.auditee.name ? `${order.auditee.nik} - ${order.auditee.name}` : "Loading..."}</td>
-                      <td>{order.auditor}</td>
+                      <td>
+                      {order.auditee && order.auditee.nik ? 
+                        `${order.auditee.nik} - ${order.auditee.name}` : 
+                        "Belum ada auditee"
+                      }
+                    </td>                 
+                    <td>{order.auditor}</td>
                       <td style={{ backgroundColor: order.statusComplete.backgroundColor, color: order.statusComplete.color }}>
                         {order.statusComplete.text}
                       </td>

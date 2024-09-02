@@ -346,9 +346,11 @@ const handleDeleteUser = async (NIK) => {
         className="karyawan-modal"
         overlayClassName="karyawan-modal-overlay"
       >
-        <h3>Data Karyawan</h3>
+        <div className="modal-header">
+          <h3>Data Karyawan</h3>
+          <button onClick={() => setIsKaryawanModalOpen(false)} className="modal-close">&times;</button>
+        </div>
         <DataKaryawan onSelectKaryawan={handleKaryawanSelect} />
-        <button onClick={() => setIsKaryawanModalOpen(false)} className="modal-cancel">Close</button>
       </Modal>
     </div>
   );
