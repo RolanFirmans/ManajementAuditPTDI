@@ -25,7 +25,7 @@ const GetDataEvidence = async (req, res) => {
 const GetAuditee = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT t.n_audusr_usrnm, t.n_audusr_nm, t.c_audusr_role, e.organisasi
+      SELECT t.n_audusr_usrnm, t.N_AUDUSR, t.c_audusr_role, e.organisasi
       FROM TMAUDUSR t
       JOIN karyawan e ON t.n_audusr_usrnm = e.nik
     `);
@@ -71,9 +71,9 @@ const UpdateAuditee = async (req, res) => {
 // -- MENAMPILKAN AUDITEE // belum dijalankan di lewat dulu
 const GetMenampilkanAuditee = async (req, res) => {
   try {
-      // Query dengan huruf kecil
+    // Query dengan huruf kecil
       const result = await pool.query(`
-          select b.n_audusr_usrnm, b.n_audusr_nm
+          select b.n_audusr_usrnm, b.n_audusr
           from tmaudevd a 
           join tmaudusr b on a.i_audevd_aud = b.n_audusr_usrnm
       `);
@@ -332,17 +332,17 @@ const GetBalasanReviewEvidence = async (req, res) => {
 // --- DETAIL PROCESSING DATA EVIDENCE DGCA
 
 // --DGCA
-// -- MENAMPILKAN DATA EVIDENCE
-// SUDAH ADA DI ATAS SAMA 
+  // -- MENAMPILKAN DATA EVIDENCE
+  // SUDAH ADA DI ATAS SAMA 
 
-// -- MENAMPILKAN DATA REMARKS BY AUDITEE -- //
-// SUDAH ADA DI ATAS SAMA 
+  // -- MENAMPILKAN DATA REMARKS BY AUDITEE -- //
+  // SUDAH ADA DI ATAS SAMA 
 
-// -- MENAMPILKAN AUDITEE -- //
-// SUDAH ADA DI ATAS SAMA
+  // -- MENAMPILKAN AUDITEE -- //
+  // SUDAH ADA DI ATAS SAMA
 
-// -- UPDATE STATUS  -- //
-// SUDAH ADA DI ATAS SAMA
+  // -- UPDATE STATUS  -- //
+  // SUDAH ADA DI ATAS SAMA
 
 
 ////////////////////////////////////////////////////////////////

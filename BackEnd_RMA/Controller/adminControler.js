@@ -1,13 +1,14 @@
 const pool = require('../utils/dbaudit');
+const axios = require('axios');
 const bcrypt = require('bcrypt');
-
+require('dotenv').config();
 
 
 
 const createDataKaryawan = async (req, res) => {
-  const { key, key1, key2, key3 } = req.body;
+  const { key, key1, key2 } = req.body;
   
-  console.log('Data yang diterima:', { key, key1, key2, key3 });
+  console.log('Data yang diterima:', { key, key1, key2 });
 
   const client = await pool.connect();
 
@@ -31,10 +32,10 @@ const createDataKaryawan = async (req, res) => {
     const hashedPassword = await bcrypt.hash(key, saltRounds);
 
     await client.query(`
-      INSERT INTO TMAUDUSR 
-      (N_AUDUSR_USRNM, N_AUDUSR_NM, C_AUDUSR_ROLE, C_AUDUSR_AUDR, I_AUDUSR_EMAIL, n_audusr_pswd)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [key, key1, roleInt, roleInt, key3, hashedPassword]);
+      INSERT INTO TMAUDUSR  
+      (N_AUDUSR_USRNM, N_AUDUSR, C_AUDUSR_ROLE, n_audusr_pswd)
+      VALUES ($1, $2, $3, $4)
+    `, [key, key1, roleInt, hashedPassword]);
 
     await client.query('COMMIT');
     res.status(200).json({ message: 'User berhasil ditambahkan' });
@@ -48,39 +49,70 @@ const createDataKaryawan = async (req, res) => {
   }
 };
 
-
 const getKaryawan = async (req, res) => {
   try {
+    // 1. Ambil data dari tabel TMAUDUSR
     const result = await pool.query(`
-      SELECT t.n_audusr_usrnm, t.n_audusr_nm, t.c_audusr_audr AS role, t.i_audusr_email, e.organisasi
-      FROM TMAUDUSR t
-      JOIN karyawan e ON t.n_audusr_usrnm = e.nik
+      SELECT n_audusr_usrnm, N_AUDUSR, C_AUDUSR_ROLE AS role
+      FROM TMAUDUSR
     `);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Data tidak ditemukan' });
     }
 
-    res.json({ payload: result.rows });
+    // 2. Ambil data dari API eksternal
+    try {
+      const apiUrl = process.env.VITE_API_URL;
+      if (!apiUrl) {
+        throw new Error('VITE_API_URL tidak diset dalam file .env');
+      }
+  
+      console.log('Menggunakan API URL:', apiUrl); // Untuk debugging
+  
+      const apiResponse = await axios.get(apiUrl);
+      const apiData = apiResponse.data.data; // Mengakses properti 'data' dari respons API
+
+      // 3. Gabungkan data dari database dengan data dari API
+      const combinedData = result.rows.map(dbUser => {
+        const apiUser = apiData.find(apiUser => apiUser.nik === dbUser.n_audusr_usrnm);
+        return {
+          ...dbUser,
+          organisasi: apiUser ? apiUser.organisasi : null
+        };
+      });
+
+      res.json({ payload: combinedData });
+    } catch (error) {
+      console.error('Error fetching data from external API:', error);
+      res.status(500).json({ 
+        error: 'An error occurred while fetching data from the external API',
+        details: error.message 
+      });
+    }
   } catch (error) {
     console.error('Error fetching karyawan:', error);
-    res.status(500).json({ error: 'An error occurred while fetching karyawan data' });
+    res.status(500).json({ 
+      error: 'An error occurred while fetching karyawan data from the database',
+      details: error.message 
+    });
   }
 };
 
+
 // Endpoint DELETE untuk DELETE datana
 const deleteKaryawan = async (req, res) => {
-  const nik = req.params.nik;
-  console.log('Received delete request for NIK:', nik);
+  const id = req.params.id;
+  console.log('Terima delete berdasarkan i_audusr:', id);
 
-  if (!nik) {
-    return res.status(400).json({ error: 'NIK tidak valid' });
+  if (!id) {
+    return res.status(400).json({ error: 'i_audusr tidak valid' });
   }
 
-  const query = 'DELETE FROM TMAUDUSR WHERE n_audusr_usrnm = $1 RETURNING *';
+  const query = 'DELETE FROM TMAUDUSR WHERE i_audusr = $1 RETURNING *';
 
   try {
-    const result = await pool.query(query, [nik]);
+    const result = await pool.query(query, [id]);
     
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Data karyawan tidak ditemukan' });
@@ -100,12 +132,12 @@ const deleteKaryawan = async (req, res) => {
 // Endpoint PUT untuk UPDATE data masih error 
 const updateKaryawan = async (req, res) => {
   const { key1 } = req.params; // N_AUDUSR_USRNM
-  const { c_audusr_role, n_audusr_nm, i_audusr_email, c_audusr_audr } = req.body;
+  const { c_audusr_role, N_AUDUSR, c_audusr_audr } = req.body;
 
-  console.log('Data yang diterima untuk update:', { key1, c_audusr_role, n_audusr_nm, i_audusr_email, c_audusr_audr });
+  console.log('Data yang diterima untuk update:', { key1, c_audusr_role, N_AUDUSR, c_audusr_audr });
 
   // Validasi field yang kosong
-  if (!key1 || !c_audusr_role || !n_audusr_nm || !i_audusr_email) {
+  if (!key1 || !c_audusr_role || !N_AUDUSR ) {
     return res.status(400).json({ error: 'Semua field harus diisi' });
   }
 
@@ -129,9 +161,9 @@ const updateKaryawan = async (req, res) => {
       // Jika role <= 3, ambil data dari tabel `karyawan`
       updateQuery = `
         UPDATE TMAUDUSR SET 
-          N_AUDUSR_NM = (SELECT nama FROM karywan WHERE nik = $1),
+          N_AUDUSR = (SELECT nama FROM karywan WHERE nik = $1),
           C_AUDUSR_ROLE = $2,
-          C_AUDUSR_AUDR = (SELECT organisasi FROM karywan WHERE nik = $1),
+          C_AUDUSR_AUDR = (SELECT organisasi FROM karyawan WHERE nik = $1),
           I_AUDUSR_EMAIL = $3
         WHERE N_AUDUSR_USRNM = $1
       `;
@@ -140,13 +172,12 @@ const updateKaryawan = async (req, res) => {
       // Jika role > 3, update langsung dari input
       updateQuery = `
         UPDATE TMAUDUSR SET 
-          N_AUDUSR_NM = $1,
+          N_AUDUSR = $1,
           C_AUDUSR_ROLE = $2,
-          C_AUDUSR_AUDR = $3,
-          I_AUDUSR_EMAIL = $4
+          C_AUDUSR_AUDR = $3
         WHERE N_AUDUSR_USRNM = $5
       `;
-      queryParams = [n_audusr_nm, roleInt, c_audusr_audr, i_audusr_email, key1];
+      queryParams = [N_AUDUSR, roleInt, c_audusr_audr, key1];
     }
 
     // Eksekusi query

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Modal from "react-modal";
 import DatePicker from "react-datepicker";
-import { getYear } from "date-fns";
+import { getYear, format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 import "../App.css";
@@ -15,6 +15,8 @@ const EvidenceSpi = () => {
   const [userToDelete, setUserToDelete] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
+  const [statusCompletedOrders, setStatusCompletedOrders] = useState([]);
+  const [orderStatuses, setOrderStatuses] = useState({});
   const [newUser, setNewUser] = useState({
     no: "",
     dataAndDocumentNeeded: "",
@@ -29,344 +31,425 @@ const EvidenceSpi = () => {
     publishingYear: "",
   });
 
-  const convertStatus = (status) => {
-    switch (status) {
-      case 1:
-        return "pending";
-      case 2:
-        return "not available";
-      case 3:
-        return "not applicable";
-      default:
-        return "unknown";
+  const convertStatusToString = (status) => {
+    const statusNum = Number(status);
+    switch (statusNum) {
+      case 1: return "Pending";
+      case 2: return "Not Available";
+      case 3: return "Not Applicable";
+      default: return "Unknown";
     }
   };
 
-  const convertAuditor = (auditor) => {
-    switch (auditor) {
-      case 1:
-        return "DGCA";
-      case 2:
-        return "Finance";
-      case 3:
-        return "ITML";
-      case 4:
-        return "ParkerRussel";
-      default:
-        return "unknown";
+  const convertAuditorToString = (auditor) => {
+    const auditorNum = Number(auditor);
+    switch (auditorNum) {
+      case 1: return "DGCA";
+      case 2: return "FINANCE";
+      case 3: return "ITML";
+      case 4: return "PARKERRUSSEL";
+      default: return "Unknown";
     }
   };
 
-  const convertStatusComplete = (statusComplete) => {
-    switch (statusComplete) {
-      case 0:
-        return { text: "NOT COMPLETE", backgroundColor: "red", color: "white" };
-      case 1:
-        return { text: "COMPLETE AUDITEE", backgroundColor: "orange", color: "white" };
-      case 2:
-        return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
-      case 3:
-        return { text: "COMPLETE SPI", backgroundColor: "green", color: "white" };
-      case 4:
-        return { text: "COMPLETE AUDITOR", backgroundColor: "blue", color: "white" };
-        default:
-          // Rekursif panggilan untuk status 0
-          return convertStatusComplete(0);
+  const convertStatusToNumber = (status) => {
+    const statusStr = String(status).toLowerCase();
+    switch (statusStr) {
+      case "pending": return 1;
+      case "not available": return 2;
+      case "not applicable": return 3;
+      default: return 1;
     }
+  };
+
+  const convertAuditorToNumber = (auditor) => {
+    if (typeof auditor !== 'string') {
+      console.warn(`Unexpected auditor value: ${auditor}. Using default value.`);
+      return 1;
+    }
+    
+    switch (auditor.toUpperCase()) {
+      case "DGCA": return 1;
+      case "FINANCE": return 2;
+      case "ITML": return 3;
+      case "PARKERRUSSEL": return 4;
+      default:
+        console.warn(`Unknown auditor value: ${auditor}. Using default value.`);
+        return 1;
+    }
+  };
+
+  
+  const convertStatusComplete = (statusComplete, hasRemarks = false) => {
+    console.log("convertStatusComplete dipanggil dengan:", statusComplete, hasRemarks);
+    let result;
+    if (statusComplete === 3) {
+      result = { text: "COMPLETE SPI", backgroundColor: "green", color: "white" };
+    } else if (statusComplete === 2) {
+      result = { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
+    } else if (statusComplete === 1 && hasRemarks) {
+      result = { text: "COMPLETE AUDITEE", backgroundColor: "orange", color: "white" };
+    } else {
+      result = { text: "NOT COMPLETE", backgroundColor: "red", color: "white" };
+    }
+    console.log("convertStatusComplete mengembalikan:", result);
+    return result;
   };
 
   useEffect(() => {
     localStorage.setItem("orders", JSON.stringify(orders));
   }, [orders]);
 
-  const updateOrderNumbers = (ordersList) => {
-    return ordersList.map((order, index) => ({
-      ...order,
-      no: index + 1,
-    }));
-  };
+ // Fungsi untuk memperbarui nomor urutan pada orders
+ const updateOrderNumbers = (ordersList) => {
+  return ordersList.map((order, index) => ({
+    ...order,
+    no: index + 1,
+  }));
+};
 
-  const handleAddUser = async () => {
-    try {
-      if (editingUser) {
-        // Mengedit data yang ada
-        const response = await axios.put(
-          `${import.meta.env.VITE_HELP_DESK}/SPI/edit-data`, // Ubah endpoint sesuai API yang digunakan
-          { ...editingUser, ...newUser }
-        );
-        if (response.status === 200) {
-          setOrders((prev) =>
-            prev.map((order) =>
-              order.no === editingUser.no ? { ...editingUser, ...newUser } : order
-            )
-          );
-          setEditingUser(null);
-        }
-      } else {
-        // Menambahkan data baru
-        const response = await axios.post(
-          `${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, // Ubah endpoint sesuai API yang digunakan
-          newUser
-        );
-        if (response.status === 201) {
-          setOrders((prev) => [
-            ...prev,
-            { no: prev.length > 0 ? prev[prev.length - 1].no + 1 : 1, ...newUser },
-          ]);
-        }
-      }
+// Edit User
+const handleEditUser = (user) => {
+  setEditingUser(user);
+  setNewUser({
+    no: user.no,
+    dataAndDocumentNeeded: user.dataAndDocumentNeeded,
+    phase: user.phase,
+    status: user.status,
+    deadline: user.deadline,
+    auditor: user.auditor,
+  });
+  setIsModalOpen(true);
+};
+
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setNewUser(prevState => ({
+    ...prevState,
+    [name]: value
+  }));
+};
+
+const handleUpdate = async () => {
+  try {
+    const formattedDate = format(new Date(newUser.deadline), 'yyyy-MM-dd');
+    
+    const updateData = {
+      key: parseInt(editingUser.no),
+      key1: newUser.dataAndDocumentNeeded,
+      key2: newUser.phase,
+      key3: convertStatusToNumber(newUser.status),
+      key4: formattedDate,
+      key5: convertAuditorToNumber(newUser.auditor)
+    };
+
+    console.log('Sending update request with data:', updateData);
+
+    const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/SPI/edit-data`, updateData);
+
+    console.log('Server response:', response.data);
+
+    if (response.data && response.data.statusCode === 200) {
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.no === editingUser.no ? { ...order, ...response.data.data } : order
+        )
+      );
       setIsModalOpen(false);
-      resetNewUser();
-    } catch (error) {
-      console.error('Error adding or editing user:', error);
-      // Handle error sesuai kebutuhan, misalnya dengan menampilkan pesan kesalahan ke pengguna
-    }
-  };
-
-
-  const handleEditUser = (user) => {
-    setEditingUser(user);
-    setNewUser(user);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteUser = (user) => {
-    setUserToDelete(user);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDeleteUser = () => {
-    const updatedOrders = orders.filter(
-      (order) => order.no !== userToDelete.no
-    );
-    const reorderedOrders = updateOrderNumbers(updatedOrders);
-    setOrders(reorderedOrders);
-    localStorage.setItem("orders", JSON.stringify(reorderedOrders));
-    setIsDeleteModalOpen(false);
-    setUserToDelete(null);
-  };
-
-  const handleUpdateUser = async (event) => {
-    try {
-      // const roleValue = getRoleValue(newUser.Role);
-  
-      // if (roleValue === null) {
-      //   throw new Error('Peran yang dipilih tidak valid');
-      // }
-  
-      const bodyData = {
-        // key1: newUser.NIK,
-        // c_audusr_role: roleValue.toString(),
-        // n_audusr_nm: newUser.Name,
-        // i_audusr_email: newUser.Email,
-
-        key:newUser.no,    // I_AUDEVD
-        key1:newUser.dataAndDocumentNeeded ,   // AUDEVD_TITTLE
-        key2:newUser.phase ,   // N_AUDEVD_PHS
-        key3:newUser.status ,   // C_AUDEVD_STAT
-        key4:newUser.deadline ,   // D_AUDEVD_DDL
-        key5:newUser.auditor     // C_AUDEVD_AUDR    
-      };
-  
-      console.log('Data yang akan dikirim:', bodyData);
-  
-      const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/SPI/edit-data/${newUser.no}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(bodyData),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Terjadi kesalahan saat memperbarui pengguna');
+      setEditingUser(null);
+      alert('Data berhasil diperbarui');
+    } else {
+      console.error("Update failed. Server response:", response.data);
+      let errorMessage = 'Berhasil memperbarui data: ';
+      if (response.data && response.data.payload && response.data.payload.message) {
+        errorMessage += response.data.payload.message;
+      } else if (response.data && response.data.message) {
+        errorMessage += response.data.message;
+      } else {
+        errorMessage += 'Terjadi kesalahan yang tidak diketahui';
       }
-  
-      const result = await response.json();
-      console.log('Hasil update:', result);
-  
-      toast.success('Pengguna berhasil diperbarui');
-      setIsAddUserModalOpen(false);
-      setNewUser({ no: '', dataAndDocumentNeeded: '', phase: '', status: '', deadline: '', auditor: '' }); // Reset newUser
-      fetchKaryawan(); // Refresh daftar karyawan setelah update
-      setIsEditing(false); // Reset flag isEditing setelah update
-  
-    } catch (error) {
-      console.error('Error memperbarui pengguna:', error);
-      toast.error(`Error memperbarui pengguna: ${error.message}`);
+      alert(errorMessage);
     }
-  };
-  
-  const resetNewUser = () => {
-    setNewUser({
-      no: "",
-      dataAndDocumentNeeded: "",
-      phase: "",
-      status: "",
-      deadline: "",
-      remarksByAuditee: "",
-      remarksByAuditor: "",
-      auditee: "",
-      auditor: "",
-      statusComplete: "",
-      publishingYear: "",
-    });
-  };
+  } catch (error) {
+    console.error("Error updating evidence:", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("No response received:", error.request);
+    } else {
+      console.error("Error message:", error.message);
+    }
+    alert('Gagal memperbarui data: ' + (error.response?.data?.message || error.message || 'Terjadi kesalahan'));
+  }
+};
 
+
+  
   const handleYearChange = (date) => {
     const year = date ? getYear(date) : "";
     setSelectedYear(year);
   };
+
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
   const filteredOrders = selectedYear
-    ? orders.filter((order) => order.publishingYear === parseInt(selectedYear))
-    : orders;
+  ? orders.filter((order) => order.publishingYear === parseInt(selectedYear))
+  : orders;
+
+  const fetchDataByYear = useCallback(async (year) => {
+    if (year) {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
+          params: { year: year }
+        });
+        if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+          const formattedData = response.data.payload.data.map(item => ({
+            no: item.i_audevd,
+            dataAndDocumentNeeded: item.n_audevd_tittle,
+            phase: item.n_audevd_phs,
+            status: item.c_audevd_stat, // Store the original status value
+            deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
+            remarksByAuditee: "",
+            remarksByAuditor: item.n_audevd_audr,
+            auditee: { nik: '', name: '' },
+            auditor: item.c_audevd_audr, // Store the original auditor value
+            statusComplete: convertStatusComplete(item.c_audevd_statcmpl, false),
+            publishingYear: new Date(item.c_audevd_yr).getFullYear(),
+            i_audevd_aud: item.i_audevd_aud || '',
+          }));
+          setOrders(formattedData);
+          for (const order of formattedData) {
+            await GetAuditee(order.no, order.i_audevd_aud);
+            await fetchRemarks(order.no);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    } else {
+      console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
+    }
+  }, []);
+
+  
+  useEffect(() => {
+    console.log('Orders updated:', orders);
+  }, [orders]);
 
   useEffect(() => {
-    const fetchDataByYear = async () => {
-      if (selectedYear) {
-        try {
-          const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
-            params: { year: selectedYear }
-          });
-          if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-            const formattedData = response.data.payload.data.map(item => ({
-              no: item.i_audevd,
-              dataAndDocumentNeeded: item.n_audevd_tittle,
-              phase: item.n_audevd_phs,
-              status: convertStatus(item.c_audevd_stat),
-              deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-              remarksByAuditee: item.i_entry,
-              remarksByAuditor: item.n_audevd_audr,
-              auditee: item.i_audevd_aud,
-              auditor: convertAuditor(item.c_audevd_audr),
-              statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
-              publishingYear: new Date(item.c_audevd_yr).getFullYear(),
-            }));
-            setOrders(formattedData);
-          } else {
-            setOrders([]);
-            console.log('Data tidak ditemukan atau tidak dalam format array');
-          }            
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        }
-      } else {
-        console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
+    if (selectedYear) {
+      fetchDataByYear(selectedYear);
+    }
+  }, [selectedYear, fetchDataByYear]);
+
+  ///////////////////////////////////////
+
+  // -- MENAMPILKAN AUDITEE --
+const GetAuditee = async (orderNo, i_audevd_aud) => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/select-auditee`, {
+      params: { i_audevd: orderNo }
+    });
+    if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+      const auditeeDataArray = response.data.payload.data;
+      let matchingAuditee;
+
+      if (i_audevd_aud) {
+        matchingAuditee = auditeeDataArray.find(auditee => auditee.n_audusr_usrnm === i_audevd_aud);
+      } else if (auditeeDataArray.length > 0) {
+        // Jika i_audevd_aud undefined, ambil auditee pertama dari array
+        matchingAuditee = auditeeDataArray[0];
+        console.log(`i_audevd_aud undefined untuk order ${orderNo}, menggunakan auditee pertama`);
       }
-    };
+      
+      if (matchingAuditee) {
+        setOrders(prevOrders => prevOrders.map(order => 
+          order.no === orderNo 
+            ? { 
+                ...order, 
+                auditee: {
+                  nik: matchingAuditee.n_audusr_usrnm,
+                  name: matchingAuditee.n_audusr
+                }
+              } 
+            : order
+        ));
+      } else {
+        console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`);
+      }
+    } else {
+      console.error(`Respons tidak valid untuk order ${orderNo}:`, response.data);
+    }
+  } catch (error) {
+    console.error(`Error mengambil data auditee untuk order ${orderNo}:`, error);
+  }
+};
 
-    fetchDataByYear();
-  }, [selectedYear]);
+////////////////////////////////////
 
-    // // --MENAMPILKAN DATA AUDITEE
-    // useEffect(() => {
-    //   const fetchAuditeeData = async () => {
-    //     try {
-    //       const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`);
-    //       if (response.data && Array.isArray(response.data.payload.data)) {
-    //         setAuditeeData(response.data.payload.data);
-    //       } else {
-    //         console.error('Expected an array but got:', response.data.payload.data);
-    //         setAuditeeData([]);
-    //       }
-    //     } catch (error) {
-    //       console.error('Error fetching data:', error);
-    //       setAuditeeData([]);
-    //     }
-    //   };
 
-    //   if (isEditModalOpen) {
-    //     fetchAuditeeData();
-    //   }
-    // }, [isEditModalOpen]);
+// MENAMPILKAN DATA REMARKS BY AUDITEE START :
+const fetchRemarks = async (key) => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/selected-remarks-auditee`, {
+      params: { key: key }
+    });
+    if (response.data && response.data.payload && response.data.payload.data && response.data.payload.data.length > 0) {
+      const remarksByAuditee = response.data.payload.data[0].e_audevdfile_desc || "";
+      const hasRemarks = remarksByAuditee.trim() !== "";
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.no === key ? { 
+          ...order, 
+          remarksByAuditee,
+          statusComplete: order.statusComplete.text === "COMPLETE SPI" 
+            ? order.statusComplete 
+            : convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : hasRemarks ? 1 : 0, hasRemarks)
+        } : order
+      ));
+    }
+  } catch (error) {
+    console.error('Error fetching remarks for key', key, ':', error);
+  }
+};
 
-  // const filteredData = Array.isArray(auditeeData)
-  //   ? auditeeData.filter(
-  //       item =>
-  //         item.n_audusr_usrnm?.includes(searchQuery) ||
-  //         item.n_audusr_nm?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //         item.organisasi?.toLowerCase().includes(searchQuery.toLowerCase())
-  //     )
-  //   : [];
+////////////////////////////////////////////
+const handleUpdateStatusSPI = async (order) => {
+  try {
+    const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/SPI/update-status/${order.no}`);
+    
+    console.log("Respons server:", response.data);
+
+    if (response.data && response.data.payload.message === "Update Status Berhasil") {
+      const updatedStatus = convertStatusComplete(3, true);
+      setOrders((prevOrders) =>
+        prevOrders.map((prevOrder) =>
+          prevOrder.no === order.no
+            ? {
+                ...prevOrder,
+                statusComplete: updatedStatus,
+              }
+            : prevOrder
+        )
+      );
+      console.log(`Status untuk order ${order.no} diperbarui:`, updatedStatus);
+    }
+  } catch (error) {
+    console.error("Error saat memperbarui status:", error);
+  }
+};
+
+useEffect(() => {
+  localStorage.setItem('orderStatuses', JSON.stringify(
+    orders.reduce((acc, order) => {
+      acc[order.no] = order.statusComplete;
+      return acc;
+    }, {})
+  ));
+}, [orders]);
+useEffect(() => {
+  const savedStatuses = JSON.parse(localStorage.getItem('orderStatuses'));
+  if (savedStatuses) {
+    setOrderStatuses(savedStatuses);
+  }
+}, []);
+useEffect(() => {
+  console.log("Status orders diperbarui:", orderStatuses);
+}, [orderStatuses]);
 
   return (
     <div className="evidence-content">
-      <h2>Data Evidence</h2>
-      <div className="filter-year-evidence">
-        <label>Filter Berdasarkan Tahun Penerbitan: </label>
-        <DatePicker
-          selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
-          onChange={handleYearChange}
-          showYearPicker
-          dateFormat="yyyy"
-          placeholderText="Select year"
-        />
-      </div>
-      <div className="evidence-table">
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Data and Document Needed</th>
-              <th>Phase</th>
-              <th>Status</th>
-              <th>Deadline</th>
-              <th>Remarks by Auditee</th>
-              <th>Remarks by Auditor</th>
-              <th>Auditee</th>
-              <th>Auditor</th>
-              <th>Status Complete</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((order, index) => (
-                <tr key={order.no || index}>
-                  <td>{order.no}</td>
-                  <td>{order.dataAndDocumentNeeded}</td>
-                  <td>{order.phase}</td>
-                  <td>{order.status}</td>
-                  <td>{order.deadline}</td>
-                  <td>{order.remarksByAuditee}</td>
-                  <td>{order.remarksByAuditor}</td>
-                  <td>{order.auditee}</td>
-                  <td>{order.auditor}</td>
-                  <td style={{ backgroundColor: order.statusComplete.backgroundColor, color: order.statusComplete.color }}>
-                    {order.statusComplete.text}
+    <h2>Data Evidence</h2>
+    <div className="filter-year-evidence">
+      <label>Filter Berdasarkan Tahun Penerbitan: </label>
+      <DatePicker
+        selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
+        onChange={handleYearChange}
+        showYearPicker
+        dateFormat="yyyy"
+        placeholderText="Select year" 
+      />
+    </div>
+    <div className="evidence-table">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Data and Document Needed</th>
+            <th>Phase</th>
+            <th>Status</th>
+            <th>Deadline</th>
+            <th>Remarks by Auditee</th>
+            <th>Remarks by Auditor</th>
+            <th>Auditee</th>
+            <th>Auditor</th>
+            <th>Status Complete</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+             <tbody>
+                {filteredOrders.length > 0 ? (
+                filteredOrders.map((order, index) => {
+                return (
+                  <tr key={order.no || index}>
+                    <td>{order.no}</td>
+                    <td>{order.dataAndDocumentNeeded}</td>
+                    <td>{order.phase}</td>
+                    <td>{convertStatusToString(order.status)}</td>
+                    <td>{order.deadline}</td>
+                    <td>{order.remarksByAuditee !== undefined ? order.remarksByAuditee : "Loading..." }</td>
+                    <td>{order.remarksByAuditor}</td>
+                    <td>
+                    {order.auditee && order.auditee.nik ? 
+                      `${order.auditee.nik} - ${order.auditee.name}` : 
+                      "Belum ada auditee"
+                    }
+                  </td>                 
+                  <td>{convertAuditorToString(order.auditor)}</td>
+                  <td style={{ 
+                    backgroundColor: orderStatuses[order.no]?.backgroundColor || order.statusComplete.backgroundColor, 
+                    color: orderStatuses[order.no]?.color || order.statusComplete.color
+                  }}>
+                    {orderStatuses[order.no]?.text || order.statusComplete.text}
                   </td>
-                  <td>
-                    <button onClick={() => handleEditUser(order)}>Edit</button>
-                    <button onClick={() => handleDeleteUser(order)}>Delete</button>
-                  </td>
-                </tr>
-              ))
+                    <td>
+                      <button onClick={() => handleEditUser(order)}>Edit</button>
+                      <button onClick={() => handleDeleteUser(order)}>Delete</button>
+                      {order.statusComplete.backgroundColor === "yellow" && (
+                      <button 
+                        onClick={() => handleUpdateStatusSPI(order)}>
+                        Update Status
+                      </button>
+                    )}
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan="11">Tidak ada data untuk ditampilkan</td>
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+      </table>
+    </div>
 
-      <Modal
+{/* Handle Edit  */}
+<Modal
         isOpen={isModalOpen}
         onRequestClose={() => setIsModalOpen(false)}
-        contentLabel="Add User Modal"
+        contentLabel="Edit User Modal"
         className="user-modal"
         overlayClassName="user-modal-overlay"
       >
-        <h3>{editingUser ? "Edit Data User" : "Add Data User"}</h3>
+        <h3>Edit Data User</h3>
         <div className="modal-content">
           <label>Data and Document Needed</label>
           <input
             type="text"
             name="dataAndDocumentNeeded"
             value={newUser.dataAndDocumentNeeded}
-            onChange={handleUpdateUser}
+            onChange={handleInputChange}
             className="modal-input"
           />
           <label>Phase</label>
@@ -374,37 +457,43 @@ const EvidenceSpi = () => {
             type="text"
             name="phase"
             value={newUser.phase}
-            onChange={handleUpdateUser}
+            onChange={handleInputChange}
             className="modal-input"
           />
           <label>Status</label>
-          <input
-            type="text"
+          <select
             name="status"
             value={newUser.status}
-            onChange={handleUpdateUser}
+            onChange={handleInputChange}
             className="modal-input"
-          />
+          >
+            <option value="pending">Pending</option>
+            <option value="not available">Not Available</option>
+            <option value="not applicable">Not Applicable</option>
+          </select>
           <label>Deadline</label>
-          <input
-            type="text"
-            name="deadline"
-            value={newUser.deadline}
-            onChange={handleUpdateUser}
+          <DatePicker
+            selected={new Date(newUser.deadline)}
+            onChange={(date) => setNewUser({...newUser, deadline: format(date, 'yyyy-MM-dd')})}
+            dateFormat="yyyy-MM-dd"
             className="modal-input"
           />
           <label>Auditor</label>
-          <input
-            type="text"
+          <select
             name="auditor"
             value={newUser.auditor}
-            onChange={handleUpdateUser}
+            onChange={handleInputChange}
             className="modal-input"
-          />
+          >
+            <option value="DGCA">DGCA</option>
+            <option value="FINANCE">Finance</option>
+            <option value="ITML">ITML</option>
+            <option value="PARKERRUSSEL">ParkerRussel</option>
+          </select>
         </div>
         <div className="modal-actions">
-          <button onClick={handleAddUser} className="modal-save">
-            {editingUser ? "Save Changes" : "Add User"}
+          <button onClick={handleUpdate} className="modal-save">
+            Save Changes
           </button>
           <button
             onClick={() => setIsModalOpen(false)}
@@ -414,7 +503,8 @@ const EvidenceSpi = () => {
           </button>
         </div>
       </Modal>
-
+      
+      {/* Handdle Delete */}
       <Modal
         isOpen={isDeleteModalOpen}
         onRequestClose={() => setIsDeleteModalOpen(false)}
@@ -425,7 +515,7 @@ const EvidenceSpi = () => {
         <h3>Delete User</h3>
         <p>Are you sure you want to delete this user?</p>
         <div className="modal-actions">
-          <button onClick={confirmDeleteUser} className="modal-save">
+          <button onClick="" className="modal-save">
             Delete
           </button>
           <button

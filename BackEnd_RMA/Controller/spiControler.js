@@ -112,7 +112,7 @@ const saveDataExcel = async (filePath) => {
       // Mengakses nilai dari row sesuai dengan nama kolom di Excel
       const values = [
         counter++,  // I_AUDEVD selalu diincrement dari nilai awal counter
-        row['Data & Document Needed'],  // N_AUDEVD_TITLE
+        row['Data & Document Needed'],  // n_audevd_tittle
         row['Phase'],                   // N_AUDEVD_PHS
         row['Status'],                  // C_AUDEVD_STAT
         row['Deadline'],  // D_AUDEVD_DDL, Gunakan tanggal saat ini jika D_AUDEVD_DDL kosong
@@ -126,7 +126,7 @@ const saveDataExcel = async (filePath) => {
       // Query SQL dengan jumlah kolom dan nilai yang sesuai
       const query = `
         INSERT INTO TMAUDEVD
-        (I_AUDEVD, N_AUDEVD_TITLE, N_AUDEVD_PHS, C_AUDEVD_STAT, D_AUDEVD_DDL, N_AUDEVD_AUDR, I_AUDEVD_AUD, C_AUDEVD_AUDR, C_AUDEVD_STATCMPL, C_AUDEVD_YR)
+        (I_AUDEVD, n_audevd_tittle, N_AUDEVD_PHS, C_AUDEVD_STAT, D_AUDEVD_DDL, N_AUDEVD_AUDR, I_AUDEVD_AUD, C_AUDEVD_AUDR, C_AUDEVD_STATCMPL, C_AUDEVD_YR)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `;
       
@@ -232,26 +232,53 @@ const PutDataEvidence = async (req, res) => {
       key4,   // D_AUDEVD_DDL
       key5    // C_AUDEVD_AUDR
     } = req.body;
-    
+
+    console.log('Received data:', { key, key1, key2, key3, key4, key5 });
+
+    // Validasi dan konversi input
+    const validatedKey = parseInt(key);
+    if (isNaN(validatedKey) || validatedKey <= 0) {
+      throw new Error('ID tidak valid');
+    }
+
+    const validatedStatus = parseInt(key3);
+    if (isNaN(validatedStatus) || validatedStatus < 1 || validatedStatus > 3) {
+      throw new Error('Status tidak valid');
+    }
+
+    const validatedAuditor = parseInt(key5);
+    if (isNaN(validatedAuditor) || validatedAuditor < 1 || validatedAuditor > 4) {
+      throw new Error('Auditor tidak valid');
+    }
+
+    // Validasi tanggal
+    const validatedDate = new Date(key4);
+    if (isNaN(validatedDate.getTime())) {
+      throw new Error('Format tanggal tidak valid');
+    }
+
     const result = await pool.query(`
-      UPDATE  tmaudevd
-      SET 
-        n_audevd_tittle = $1, 
-        n_audevd_phs = $2, 
+      UPDATE tmaudevd
+      SET
+        n_audevd_tittle = $1,
+        n_audevd_phs = $2,
         c_audevd_stat = $3,
-        d_audevd_ddl = $4, 
+        d_audevd_ddl = $4,
         c_audevd_audr = $5
       WHERE i_audevd = $6
-    `, [key1, key2, key3, key4, key5, key]
-    );
-    console.log('Update Data Evience SPI', result.rows);
-    
-    // Menggunakan fungsi response yang sudah didefinisikan sebelumnya
-    response(200, result.rows, 'Update Tidak Berhasil', res);
-  } catch (error) {
-    console.error('Error executing query', error.stack);
+      RETURNING *
+    `, [key1, key2, validatedStatus, validatedDate, validatedAuditor, validatedKey]);
 
-    response(500, [], 'Terjadi kesalahan', res);
+    if (result.rows.length === 0) {
+      throw new Error('Data tidak ditemukan');
+    }
+
+    console.log('Update Data Evidence SPI', result.rows[0]);
+
+    response(200, result.rows[0], 'Update Berhasil', res);
+  } catch (error) {
+    console.error('Error executing query', error);
+    response(400, [], error.message || 'Terjadi kesalahan', res);
   }
 };
 
@@ -310,17 +337,30 @@ const GetSelectedAuditee = async (req, res) => {
 
 // UPDATE STATUS SPI
 const updateStatus = async (req, res) => {
-  const key = req.body.I_AUDEVD; // Mengambil nilai I_AUDEVD dari request body
-  const postgres = `UPDATE TMAUDEVD SET C_AUDEVD_STATCMPL = 3 WHERE I_AUDEVD = $1`;
-
-  pool.query(postgres, [key], (error, result) => {
-    if (error) {
-      console.error("Error executing query", error.stack);
-      return response(500, null, "Terjadi kesalahan pada server", res);
+  console.log("Received i_audevd:", req.params.i_audevd);  // Log nilai parameter
+  const key = parseInt(req.params.i_audevd, 10);   // Pastikan nama parameter di URL sesuai
+  console.log(req.params);
+   if (isNaN(key)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+  const postgres = `UPDATE tmaudevd SET c_audevd_statcmpl = 3 WHERE i_audevd = $1 RETURNING *`;
+ 
+ 
+  try {
+    const result = await pool.query(postgres, [key]);
+    if (result.rows.length > 0) {
+      // Panggil fungsi response untuk mengirimkan respons berhasil
+      response(200, result.rows[0], "Update Status Berhasil", res);
+    } else {
+      // Panggil fungsi response untuk mengirimkan respons jika data tidak ditemukan
+      response(404, null, "Data tidak ditemukan", res);
     }
-    response(200, result.rows, "Update Status Berhasil", res);
-  });
-}
+  } catch (error) {
+    console.error("Error executing query", error.stack);
+    // Panggil fungsi response untuk mengirimkan respons error
+    response(500, null, "Terjadi kesalahan pada server", res);
+  }
+};
 
 // -----------------------------------------------------------------------------
 // DETAIL PROCESSING DATA EVIDENCE AFTER STATUS COMPLETE ADMIN AUDIT IT
@@ -353,7 +393,7 @@ const updateStatus = async (req, res) => {
 const GetTitle = async (req, res) => {
   const key = req.params.I_AUDEVD; // Mengambil nilai I_AUDEVD dari request params
   const postgres = `
-      SELECT N_AUDEVD_TITLE FROM TMAUDEVD WHERE I_AUDEVD=$1
+      SELECT n_audevd_tittle FROM TMAUDEVD WHERE I_AUDEVD=$1
     `;
 
   pool.query(postgres, [key], (error, result) => {

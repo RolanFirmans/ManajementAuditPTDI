@@ -4,19 +4,20 @@ import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import { getYear } from 'date-fns';
 import 'react-datepicker/dist/react-datepicker.css';
+import "../App.css";
 
 Modal.setAppElement("#root");
 
 const EvidenceAait = () => {
   const [orders, setOrders] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [auditeeData, setAuditeeData] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentEditOrder, setCurrentEditOrder] = useState(null);
-  const [remarksData, setRemarksData] = useState([]);
   const [selectedAuditees, setSelectedAuditees] = useState({});
+  const itemsPerPage = 10;
 
   const [newUser, setNewUser] = useState({
     no: "",
@@ -61,7 +62,10 @@ const EvidenceAait = () => {
   };
 
   const convertStatusComplete = (statusComplete, hasRemarks = false) => {
-    if (statusComplete === 2) {
+    if (statusComplete === 3) {
+      return { text: "COMPLETE SPI", backgroundColor: "green", color: "white" };
+    }
+    if (statusComplete === 2) { 
       return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
     }
     if (hasRemarks) {
@@ -74,45 +78,19 @@ const EvidenceAait = () => {
     localStorage.setItem("orders", JSON.stringify(orders));
   }, [orders]);
 
-  const handleAddUser = () => {
-    setOrders((prev) => [
-      ...prev,
-      { no: prev.length > 0 ? prev[prev.length - 1].no + 1 : 1, ...newUser, publishingYear: new Date().getFullYear() },
-    ]);
-    setIsModalOpen(false);
-    resetNewUser();
-  };
+  // const handleAddUser = () => {
+  //   setOrders((prev) => [
+  //     ...prev,
+  //     { no: prev.length > 0 ? prev[prev.length - 1].no + 1 : 1, ...newUser, publishingYear: new Date().getFullYear() },
+  //   ]);
+  //   setIsModalOpen(false);
+  //   resetNewUser();
+  // };
 
   const handleEditUser = (order) => {
     setCurrentEditOrder(order);
     setIsEditModalOpen(true);
     fetchRemarks(order.no); 
-  };
-
-  const handleSaveEditUser = () => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.no === currentEditOrder.no ? currentEditOrder : order
-      )
-    );
-    setIsEditModalOpen(false);
-    setCurrentEditOrder(null);
-  };
-
-  const resetNewUser = () => {
-    setNewUser({
-      no: "",
-      dataAndDocumentNeeded: "",
-      phase: "",
-      status: "",
-      deadline: "",
-      remarksByAuditee: "",
-      remarksByAuditor: "",
-      auditee: "",
-      auditor: "",
-      statusComplete: "",
-      publishingYear: "",
-    });
   };
 
   const handleYearChange = (date) => {
@@ -194,7 +172,6 @@ useEffect(() => {
     : [];
 
 // -- MEMILIH AUDITEE
-// -- YANG MEMILIH MASIH ERROR DI LEWAT DULU 
 const handleCheckboxChange = (nik) => {
   setSelectedAuditees(prev => ({
     ...prev,
@@ -260,7 +237,7 @@ const GetAuditee = async (orderNo, i_audevd_aud) => {
                 ...order, 
                 auditee: {
                   nik: matchingAuditee.n_audusr_usrnm,
-                  name: matchingAuditee.n_audusr_nm
+                  name: matchingAuditee.n_audusr  
                 }
               } 
             : order
@@ -291,17 +268,12 @@ const fetchRemarks = async (key) => {
         order.no === key ? { 
           ...order, 
           remarksByAuditee,
-          statusComplete: order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT"
-            ? order.statusComplete
-            : convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : 0, hasRemarks)
+          statusComplete: convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : (hasRemarks ? 2 : 0), hasRemarks)
         } : order
       ));
-    } else {
-      
     }
   } catch (error) {
     console.error('Error fetching remarks for key', key, ':', error);
-    
   }
 };
 
@@ -313,13 +285,11 @@ const handleUpdateStatus = async (order) => {
 
     if (response.data && response.data.message === "Update Status Berhasil") {
       console.log("Status berhasil diperbarui");
-      // Perbarui state lokal
       setOrders(prevOrders => prevOrders.map(o => 
         o.no === order.no 
           ? { ...o, statusComplete: convertStatusComplete(2, true) } 
           : o
       ));
-      // Jangan panggil fetchDataByYear di sini, karena ini akan menimpa perubahan yang baru saja kita buat
     } else {
       console.error("Gagal memperbarui status:", response.data ? response.data.message : "Respons tidak valid");
     }
@@ -341,6 +311,15 @@ useEffect(() => {
 
 
 // MENAMPILKAN DATA REMARKS BY AUDITEE END :
+
+const indexOfLastItem = currentPage * itemsPerPage;
+const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
+const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+const handlePageChange = (pageNumber) => {
+  setCurrentPage(pageNumber);
+};
 
   return (
     <div className="evidence-content">
@@ -377,7 +356,6 @@ useEffect(() => {
                   filteredOrders.map((order, index) => {
                   // Cari data auditee berdasarkan `order.auditee`
                   const auditee = auditeeData.find(auditee => auditee.n_audusr_usrnm === order.auditee) || {};
-                  
                   return (
                     <tr key={order.no || index}>
                       <td>{order.no}</td>
@@ -401,9 +379,8 @@ useEffect(() => {
                         <button onClick={() => handleEditUser(order)}>Edit</button>
                         <button onClick={() => handleDeleteUser(order)}>Delete</button>
                         {order.statusComplete.backgroundColor === "orange" && (
-                                  <button onClick={() => handleUpdateStatus(order)}>Update Status</button>
-                                )}
-          
+                        <button onClick={() => handleUpdateStatus(order)}>Update Status</button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -437,6 +414,7 @@ useEffect(() => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             <table className="auditee-table">
+              <table className="table table-striped">
               <thead>
                 <tr>
                   <th>No</th>
@@ -468,10 +446,30 @@ useEffect(() => {
                 )}
               </tbody>
             </table>
+            </table>
+            
             <div className="modal-actions">
               <button onClick={() => setIsEditModalOpen(false)}>Cancel</button>
               <button className="select-btn" onClick={handleSelectAuditee} >Select</button>
             </div>
+            <div className="entries-info">
+          Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} entries
+        </div>
+        <div className="pagination">
+        <button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>&laquo;</button>
+        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>&lt;</button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+          <button
+            key={number}
+            onClick={() => handlePageChange(number)}
+            className={currentPage === number ? 'active' : ''}
+          >
+            {number}
+          </button>
+        ))}
+        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>&gt;</button>
+        <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>&raquo;</button>
+      </div>
           </div>
         </div>
       </Modal>

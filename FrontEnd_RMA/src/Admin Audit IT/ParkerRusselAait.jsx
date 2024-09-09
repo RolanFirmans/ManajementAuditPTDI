@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Modal from "react-modal";
 import DatePicker from "react-datepicker";
 import { getYear } from "date-fns";
@@ -87,54 +87,136 @@ const ParkerRussel = () => {
     }
   }, []);
 
-  useEffect(() => {
-    console.log('useEffect dijalankan'); // Logging pertama
-    const fetchDataByYear = async () => {
-      if (selectedYear) {
-        try {
-          const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
-            params: { year: selectedYear }
-          });
-          if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-            const formattedData = response.data.payload.data.map(item => ({
-              no: item.i_audevd,
-              dataAndDocumentNeeded: item.n_audevd_title,
-              phase: item.n_audevd_phs,
-              status: convertStatus(item.c_audevd_stat),
-              deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-              remarksByAuditee: item.i_entry,
-              remarksByAuditor: item.n_audevd_audr,
-              auditee: item.i_audevd_aud,
-              auditor: convertAuditor(item.c_audevd_audr),
-              statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
-              publishingYear: new Date(item.c_audevd_yr).getFullYear(),
-            }));
-  
-            // Filter data API berdasarkan auditor "ParkerRussel"
-            const ParkerRusselAPIOrders = formattedData.filter(
-              (order) => order.auditor === "ParkerRussel"
-            );
-            const orderedParkerRusselAPIOrders = updateOrderNumbers(ParkerRusselAPIOrders);
-  
-            // Gabungkan dengan data dari localStorage
-            setOrders(prevOrders => {
-              const allOrders = [...prevOrders, ...orderedParkerRusselAPIOrders];
-              return updateOrderNumbers(allOrders);
-            });
-          } else {
-            setOrders([]);
-            console.log('Data tidak ditemukan atau tidak dalam format array');
+  const fetchDataByYear = useCallback(async (year) => {
+    if (year) {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
+          params: { year: year }
+        });
+        if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+          const formattedData = response.data.payload.data.map(item => ({
+            no: item.i_audevd,
+            dataAndDocumentNeeded: item.n_audevd_tittle,
+            phase: item.n_audevd_phs,
+            status: convertStatus(item.c_audevd_stat),
+            deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
+            remarksByAuditee: "",
+            remarksByAuditor: item.n_audevd_audr,
+            auditee: { nik: '', name: '' },
+            auditor: convertAuditor(item.c_audevd_audr),
+            statusComplete: convertStatusComplete(item.c_audevd_statcmpl, false),
+            publishingYear: new Date(item.c_audevd_yr).getFullYear(),
+            i_audevd_aud: item.i_audevd_aud || '', 
+          }));
+          setOrders(formattedData);
+          for (const order of formattedData) {
+            await GetAuditee(order.no, order.i_audevd_aud);
+            await fetchRemarks(order.no);
           }
-        } catch (error) {
-          console.error('Error fetching data:', error);
+        } else {
+          setOrders([]);
+          console.log('Data tidak ditemukan atau tidak dalam format array');
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    } else {
+      console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
+    }
+  }, []);
+
+  // Fungsi untuk menampilkan data remarks by auditee
+  const fetchRemarks = async (key) => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/selected-remarks-auditee`, {
+        params: { key: key }
+      });
+      if (response.data && response.data.payload && response.data.payload.data && response.data.payload.data.length > 0) {
+        const remarksByAuditee = response.data.payload.data[0].e_audevdfile_desc || "";
+        const hasRemarks = remarksByAuditee.trim() !== "";
+        setOrders(prevOrders => prevOrders.map(order => 
+          order.no === key ? { 
+            ...order, 
+            remarksByAuditee,
+            statusComplete: order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT"
+              ? order.statusComplete
+              : convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : 0, hasRemarks)
+          } : order
+        ));
+      }
+    } catch (error) {
+      console.error('Error fetching remarks for key', key, ':', error);
+    }
+  };
+
+  // Fungsi untuk menampilkan auditee
+  const GetAuditee = async (orderNo, i_audevd_aud) => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/select-auditee`, {
+        params: { i_audevd: orderNo }
+      });
+      if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+        const auditeeDataArray = response.data.payload.data;
+        let matchingAuditee;
+
+        if (i_audevd_aud) {
+          matchingAuditee = auditeeDataArray.find(auditee => auditee.n_audusr_usrnm === i_audevd_aud);
+        } else if (auditeeDataArray.length > 0) {
+          matchingAuditee = auditeeDataArray[0];
+          console.log(`i_audevd_aud undefined untuk order ${orderNo}, menggunakan auditee pertama`);
+        }
+        
+        if (matchingAuditee) {
+          setOrders(prevOrders => prevOrders.map(order => 
+            order.no === orderNo 
+              ? { 
+                  ...order, 
+                  auditee: {
+                    nik: matchingAuditee.n_audusr_usrnm,
+                    name: matchingAuditee.n_audusr_nm
+                  }
+                } 
+              : order
+          ));
+        } else {
+          console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`);
         }
       } else {
-        console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
+        console.error(`Respons tidak valid untuk order ${orderNo}:`, response.data);
       }
-    };
-  
-    fetchDataByYear();
-  }, [selectedYear]);
+    } catch (error) {
+      console.error(`Error mengambil data auditee untuk order ${orderNo}:`, error);
+    }
+  };
+
+  // Fungsi untuk update status
+  const handleUpdateStatus = async (order) => {
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-status`, {
+        I_AUDEVD: order.no
+      });
+
+      if (response.data && response.data.message === "Update Status Berhasil") {
+        console.log("Status berhasil diperbarui");
+        setOrders(prevOrders => prevOrders.map(o => 
+          o.no === order.no 
+            ? { ...o, statusComplete: convertStatusComplete(2, true) } 
+            : o
+        ));
+      } else {
+        console.error("Gagal memperbarui status:", response.data ? response.data.message : "Respons tidak valid");
+      }
+    } catch (error) {
+      console.error("Error saat memperbarui status:", error.response ? error.response.data : error.message);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedYear) {
+      fetchDataByYear(selectedYear);
+    }
+  }, [selectedYear, fetchDataByYear]);
+
 
   const updateOrderNumbers = (ordersList) => {
     return ordersList.map((order, index) => ({
@@ -223,66 +305,66 @@ const ParkerRussel = () => {
     <div className="data-user">
       <h2>Data User - Parker Russel</h2>
       <div className="filter-year-evidence">
-        <label>Filter Berdasarkan Tahun Penerbitan: </label>
-        <DatePicker
-          selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
-          onChange={handleYearChange}
-          showYearPicker
-          dateFormat="yyyy"
-          placeholderText="Select year"
-        />
-      </div>
-      <div className="data-user-content">
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Data and Document Needed</th>
-              <th>Phase</th>
-              <th>Status</th>
-              <th>Deadline</th>
-              <th>Remarks by Auditee</th>
-              <th>Remarks by Auditor</th>
-              <th>Auditee</th>
-              <th>Auditor</th>
-              <th>Status Complete</th>
-              <th>Action</th>
+      <label>Filter Berdasarkan Tahun Penerbitan: </label>
+      <DatePicker
+        selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
+        onChange={handleYearChange}
+        showYearPicker
+        dateFormat="yyyy"
+        placeholderText="Select year"
+      />
+    </div>
+    <div className="data-user-content">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Data and Document Needed</th>
+            <th>Phase</th>
+            <th>Status</th>
+            <th>Deadline</th>
+            <th>Remarks by Auditee</th>
+            <th>Remarks by Auditor</th>
+            <th>Auditee</th>
+            <th>Auditor</th>
+            <th>Status Complete</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => (
+            <tr key={order.no}>
+              <td>{order.no}</td>
+              <td>{order.dataAndDocumentNeeded}</td>
+              <td>{order.phase}</td>
+              <td>{order.status}</td>
+              <td>{order.deadline}</td>
+              <td>{order.remarksByAuditee}</td>
+              <td>{order.remarksByAuditor}</td>
+              <td>
+                {order.auditee && `${order.auditee.nik} - ${order.auditee.name}`}
+              </td>
+              <td>{order.auditor}</td>
+              <td
+                style={{
+                  backgroundColor: order.statusComplete.backgroundColor,
+                  color: order.statusComplete.color,
+                }}
+              >
+                {order.statusComplete.text}
+              </td>
+              <td>
+                <button onClick={() => handleEditUser(order)}>Edit</button>
+                <button onClick={() => handleDeleteUser(order)}>Delete</button>
+                {order.statusComplete.text === "COMPLETE AUDITEE" && (
+                  <button onClick={() => handleUpdateStatus(order)}>Update Status</button>
+                )}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr>
-                <td>{order.no}</td>
-                <td>{order.dataAndDocumentNeeded}</td>
-                <td>{order.phase}</td>
-                <td>{order.status}</td>
-                <td>{order.deadline}</td>
-                <td>{order.remarksByAuditee}</td>
-                <td>{order.remarksByAuditor}</td>
-                <td>{order.auditee}</td>
-                <td>{order.auditor}</td>
-                <td
-                  style={{
-                    backgroundColor: order.statusComplete.backgroundColor,
-                    color: order.statusComplete.color,
-                  }}
-                >
-                  {order.statusComplete.text}
-                </td>
-                <td>
-                  <button onClick={() => handleEditUser(order)}>Edit</button>
-                  <button onClick={() => handleDeleteUser(order)}>
-                    Delete
-                  </button>
-                  <button onClick={() => handleToggleComplete(order.no)}>
-                    Task
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
+    </div>
 
       <Modal
         isOpen={isModalOpen}

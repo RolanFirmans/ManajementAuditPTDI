@@ -11,22 +11,21 @@ const DataUser = () => {
   const [orders, setOrders] = useState([]);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isKaryawanModalOpen, setIsKaryawanModalOpen] = useState(false);
+  const [filterOrganisasi, setFilterOrganisasi] = useState('');
   const getRoleValue = (roleLabel) => {
     switch (roleLabel) {
-      case 'ADMIN': return 0;
-      case 'SPI': return 1;
+      case 'ADMIN': return 1;
       case 'AUDITEE': return 2;
-      case 'AUDITOR': return 3;
+      case 'SPI': return 3;
       case 'ADMIN_IT': return 4;
       default: return null;
     }
   };
   const getRoleLabel = (roleValue) => {
     switch (parseInt(roleValue)) {
-      case 0: return 'ADMIN';
-      case 1: return 'SPI';
+      case 1: return 'ADMIN';
       case 2: return 'AUDITEE';
-      case 3: return 'AUDITOR';
+      case 3: return 'SPI';
       case 4: return 'ADMIN_IT';
       default: return 'null';
     }
@@ -40,35 +39,38 @@ const DataUser = () => {
     Organization: '',
     Email: '',
   });
-
   const fetchKaryawan = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Admin/karyawan`);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorBody = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
       }
       const result = await response.json();
-
+  
       if (result.payload === 'Data tidak ditemukan') {
-        console.error('Data tidak ditemukan');
+        console.warn('Data karyawan tidak ditemukan');
+        setOrders([]);
         return;
       }
       
       const mappedKaryawan = result.payload.map((item, index) => ({
         No: index + 1,
         NIK: item.n_audusr_usrnm,
-        Name: item.n_audusr_nm,
+        Name: item.n_audusr,
         Role: getRoleLabel(item.role),
         Organization: item.organisasi,
-        Email: item.i_audusr_email
       }));
-
+  
       setOrders(mappedKaryawan);
     } catch (error) {
       console.error('Error fetching data:', error.message);
+      // Tampilkan pesan error kepada pengguna
+      toast.error(`Gagal mengambil data karyawan: ${error.message}`);
+      setOrders([]);
     }
   };
-
+  
   useEffect(() => {
     fetchKaryawan();
   }, []);
@@ -84,7 +86,6 @@ const DataUser = () => {
         key: newUser.NIK,
         key1: newUser.Name,
         key2: roleValue,
-        key3: newUser.Email
       };
   
       console.log('Data yang dikirim:', bodyData);
@@ -114,11 +115,29 @@ const DataUser = () => {
       alert(`Error menambahkan pengguna: ${error.message}`);
     }
   };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewUser((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'Role') {
+      let newFilterOrganisasi = '';
+      if (value === 'ADMIN' || value === 'ADMIN_IT' || value === 'AUDITEE') {
+        newFilterOrganisasi = 'IT';
+      }
+      if (value === 'SPI'){
+        newFilterOrganisasi = 'PI';
+      }
+      setFilterOrganisasi(newFilterOrganisasi);
+      
+      // Buka modal DataKaryawan jika role yang dipilih memerlukan filter
+      if (newFilterOrganisasi) {
+        setIsKaryawanModalOpen(true);
+      }
+    }
   };
 
+  
   
   const handleUpdateUser = async () => {
     try {
@@ -132,7 +151,6 @@ const DataUser = () => {
         key1: newUser.NIK,
         c_audusr_role: roleValue.toString(),
         n_audusr_nm: newUser.Name,
-        i_audusr_email: newUser.Email,
       };
 
       console.log('Data yang akan dikirim:', bodyData);
@@ -155,7 +173,7 @@ const DataUser = () => {
 
       toast.success('Pengguna berhasil diperbarui');
       setIsAddUserModalOpen(false);
-      setNewUser({ No: '', NIK: '', Name: '', Role: '', Organization: '', Email: '' }); // Reset newUser
+      setNewUser({ No: '', NIK: '', Name: '', Role: '', Organization: '' }); // Reset newUser
       fetchKaryawan(); // Refresh daftar karyawan setelah update
       setIsEditing(false); // Reset flag isEditing setelah update
 
@@ -178,27 +196,26 @@ const DataUser = () => {
       NIK: user.NIK,
       Name: user.Name,
       Role: user.Role,
-      Email: user.Email,
       Organization: user.Organization
     });
     setIsAddUserModalOpen(true);
   };
 
 // Fungsi untuk menghapus user
-const handleDeleteUser = async (NIK) => {
-  console.log('Attempting to delete user with NIK:', NIK);
-  if (!NIK) {
-    toast.error('NIK karyawan tidak valid');
+const handleDeleteUser = async (i_audusr) => {
+  console.log('Menghapus Pengguna dengan NIK:', i_audusr);
+  if (!i_audusr) {
+    toast.error('i_audusr karyawan tidak valid');
     return;
   }
 
   if (window.confirm('Apakah Anda yakin ingin menghapus user ini?')) {
     try {
-      const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Admin/delete-karyawan/${NIK}`);
+      const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Admin/delete-karyawan/${i_audusr}`);
       
       if (response.status === 200) {
         console.log('User berhasil dihapus:', response.data);
-        setOrders(prevOrders => prevOrders.filter(order => order.NIK !== NIK));
+        setOrders(prevOrders => prevOrders.filter(order => order.i_audusr !== i_audusr));
         toast.success('User berhasil dihapus');
       } else {
         throw new Error(response.data.message || 'Gagal menghapus user');
@@ -217,15 +234,21 @@ const handleDeleteUser = async (NIK) => {
   };
 
   const handleKaryawanSelect = (karyawan) => {
-    setNewUser({
-      No: karyawan.no,
+    setNewUser(prev => ({
+      ...prev,
       NIK: karyawan.nik,
       Name: karyawan.nama,
       Organization: karyawan.organisasi,
-      Email: karyawan.email,
-    });
+    }));
     setIsKaryawanModalOpen(false);
-  };
+    setIsAddUserModalOpen(true); // Buka kembali modal Add User
+  };  
+
+  useEffect(() => {
+    if (filterOrganisasi) {
+      setIsKaryawanModalOpen(true);
+    }
+  }, [filterOrganisasi]);
 
   return (
     <div className="data-user">
@@ -239,7 +262,7 @@ const handleDeleteUser = async (NIK) => {
         </button>
       </div>
       <div className="data-user-content">
-        <table>
+        <table class="table table-striped">
           <thead>
             <tr>
               <th>No</th>
@@ -247,7 +270,6 @@ const handleDeleteUser = async (NIK) => {
               <th>Name</th>
               <th>Role</th>
               <th>Organization</th>
-              <th>Email</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -259,10 +281,9 @@ const handleDeleteUser = async (NIK) => {
                 <td>{order.Name}</td>
                 <td>{order.Role}</td>
                 <td>{order.Organization}</td>
-                <td>{order.Email}</td>
                 <td>
                 <button onClick={() => {
-                  console.log('Delete button clicked for NIK:', order.NIK);
+                  console.log('Delete button klik berdasarkan NIK:', order.NIK);
                   handleDeleteUser(order.NIK);
                 }}>Delete</button>
                   <button onClick={() => handleEditUser(order)}>Edit</button>
@@ -282,6 +303,20 @@ const handleDeleteUser = async (NIK) => {
       >
         <h3>{newUser.NIK ? 'Edit' : 'Add'} Data User</h3>
         <div className="modal-content">
+        <label>Role</label>
+          <select
+              name="Role"
+              value={newUser.Role}
+              onChange={handleInputChange}
+              className="modal-select"
+            >
+              <option value="">Pilih Peran</option>
+              <option value="ADMIN">Admin</option>
+              <option value="SPI">SPI</option>
+              <option value="AUDITEE">Auditee</option>
+              <option value="AUDITOR">Auditor</option>
+              <option value="ADMIN_IT">Admin IT</option>
+            </select>
           <label>NIK</label>
           <input
             type="text"
@@ -299,20 +334,7 @@ const handleDeleteUser = async (NIK) => {
             onChange={handleInputChange}
             className="modal-input"
           />
-          <label>Role</label>
-          <select
-              name="Role"
-              value={newUser.Role}
-              onChange={handleInputChange}
-              className="modal-select"
-            >
-              <option value="">Pilih Peran</option>
-              <option value="ADMIN">Admin</option>
-              <option value="SPI">SPI</option>
-              <option value="AUDITEE">Auditee</option>
-              <option value="AUDITOR">Auditor</option>
-              <option value="ADMIN_IT">Admin IT</option>
-            </select>
+          
           {/* <label>Organization</label>
           <input
             type="text"
@@ -321,14 +343,6 @@ const handleDeleteUser = async (NIK) => {
             onChange={handleInputChange}
             className="modal-input"
           /> */}
-          <label>Email</label>
-          <input
-            type="email"
-            name="Email"
-            value={newUser.Email}
-            onChange={handleInputChange}
-            className="modal-input"
-          />
         </div>
         <div className="modal-actions">
           <button onClick={() => setIsAddUserModalOpen(false)} className="modal-cancel">Cancel</button>
@@ -350,9 +364,9 @@ const handleDeleteUser = async (NIK) => {
           <h3>Data Karyawan</h3>
           <button onClick={() => setIsKaryawanModalOpen(false)} className="modal-close">&times;</button>
         </div>
-        <DataKaryawan onSelectKaryawan={handleKaryawanSelect} />
-      </Modal>
-    </div>
+        <DataKaryawan onSelectKaryawan={handleKaryawanSelect} filterOrganisasi={filterOrganisasi} />
+        </Modal>
+      </div>
   );
 };
 

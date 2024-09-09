@@ -82,7 +82,7 @@ router.post('/reply-komen', ReplyKomen);
 // Definisikan route untuk update karyawan
 // router.put('/update-karyawan/:n_audusr_usrnm', updateKaryawan); 
 router.put('/edit-data', PutDataEvidence);
-router.put('/up-status', updateStatus);
+router.put('/update-status/:i_audevd', updateStatus);
 
 
 
