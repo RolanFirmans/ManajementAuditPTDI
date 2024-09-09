@@ -145,10 +145,10 @@ useEffect(() => {
   const fetchAuditeeData = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`);
-      if (response.data && Array.isArray(response.data.payload.data)) {
-        setAuditeeData(response.data.payload.data);
+      if (response.data && Array.isArray(response.data.payload)) {
+        setAuditeeData(response.data.payload);
       } else {
-        console.error('Expected an array but got:', response.data.payload.data);
+        console.error('Expected an array but got:', response.data.payload);
         setAuditeeData([]);
       }
     } catch (error) {
@@ -162,14 +162,14 @@ useEffect(() => {
   }
 }, [isEditModalOpen]);
 
-  const filteredData = Array.isArray(auditeeData)
-    ? auditeeData.filter(
-        item =>
-          item.n_audusr_usrnm?.includes(searchQuery) ||
-          item.n_audusr_nm?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.organisasi?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+const filteredData = Array.isArray(auditeeData)
+  ? auditeeData.filter(
+      item =>
+        item.n_audusr_usrnm?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.n_audusr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.organisasi?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  : [];
 
 // -- MEMILIH AUDITEE
 const handleCheckboxChange = (nik) => {
@@ -199,7 +199,7 @@ const handleSelectAuditee = async () => {
       console.log("Auditee berhasil diperbarui");
       setOrders(prevOrders => prevOrders.map(order => 
         order.no === currentEditOrder.no 
-          ? { ...order, auditee: { nik: selectedNik, name: auditeeData.find(a => a.n_audusr_usrnm === selectedNik)?.n_audusr_nm } } 
+          ? { ...order, auditee: { nik: selectedNik, name: auditeeData.find(a => a.n_audusr_usrnm === selectedNik)?.n_audusr } } 
           : order
       ));
       setIsEditModalOpen(false);
@@ -435,7 +435,7 @@ const handlePageChange = (pageNumber) => {
                           onChange={() => handleCheckboxChange(item.n_audusr_usrnm)}
                         /></td>
                       <td>{item.n_audusr_usrnm}</td>
-                      <td>{item.n_audusr_nm}</td>
+                      <td>{item.n_audusr}</td>
                       <td>{item.organisasi}</td>
                     </tr>
                   ))

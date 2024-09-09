@@ -39,6 +39,9 @@ const DataUser = () => {
     Organization: '',
     Email: '',
   });
+
+
+  
   const fetchKaryawan = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Admin/karyawan`);
@@ -54,18 +57,22 @@ const DataUser = () => {
         return;
       }
       
-      const mappedKaryawan = result.payload.map((item, index) => ({
-        No: index + 1,
+      if (!Array.isArray(result.payload)) {
+        throw new Error('Data yang diterima bukan array');
+      }
+
+      const mappedKaryawan = result.payload.map((item) => ({
+        No: item.i_audusr,
         NIK: item.n_audusr_usrnm,
         Name: item.n_audusr,
         Role: getRoleLabel(item.role),
         Organization: item.organisasi,
       }));
   
+      console.log('Mapped Karyawan:', mappedKaryawan);
       setOrders(mappedKaryawan);
     } catch (error) {
       console.error('Error fetching data:', error.message);
-      // Tampilkan pesan error kepada pengguna
       toast.error(`Gagal mengambil data karyawan: ${error.message}`);
       setOrders([]);
     }
@@ -201,9 +208,10 @@ const DataUser = () => {
     setIsAddUserModalOpen(true);
   };
 
+
 // Fungsi untuk menghapus user
 const handleDeleteUser = async (i_audusr) => {
-  console.log('Menghapus Pengguna dengan NIK:', i_audusr);
+  console.log('Menghapus Pengguna dengan i_audusr:', i_audusr);
   if (!i_audusr) {
     toast.error('i_audusr karyawan tidak valid');
     return;
@@ -262,7 +270,7 @@ const handleDeleteUser = async (i_audusr) => {
         </button>
       </div>
       <div className="data-user-content">
-        <table class="table table-striped">
+        <table className="table table-striped">
           <thead>
             <tr>
               <th>No</th>
@@ -274,18 +282,15 @@ const handleDeleteUser = async (i_audusr) => {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order, index) => (
-              <tr key={`${order.NIK}-${index}`}>
+            {orders.map((order) => (
+              <tr key={order.i_audusr}>
                 <td>{order.No}</td>
                 <td>{order.NIK}</td>
                 <td>{order.Name}</td>
                 <td>{order.Role}</td>
                 <td>{order.Organization}</td>
                 <td>
-                <button onClick={() => {
-                  console.log('Delete button klik berdasarkan NIK:', order.NIK);
-                  handleDeleteUser(order.NIK);
-                }}>Delete</button>
+                  <button onClick={() => handleDeleteUser(order.No)}>Delete</button>
                   <button onClick={() => handleEditUser(order)}>Edit</button>
                 </td>
               </tr>

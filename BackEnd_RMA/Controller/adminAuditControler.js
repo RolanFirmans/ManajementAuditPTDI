@@ -1,4 +1,5 @@
 const pool = require('../utils/dbaudit');
+const axios = require('axios');
 const response = require('../response');
 
 // DETAILING PROCESSING ADMIN AUDIT IT INPUT DAN AUDITEE 
@@ -25,20 +26,55 @@ const GetDataEvidence = async (req, res) => {
 const GetAuditee = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT t.n_audusr_usrnm, t.N_AUDUSR, t.c_audusr_role, e.organisasi
+      SELECT t.n_audusr_usrnm, t.N_AUDUSR, t.c_audusr_role
       FROM TMAUDUSR t
-      JOIN karyawan e ON t.n_audusr_usrnm = e.nik
     `);
 
-    // Mengirimkan data Auditee dengan struktur JSON yang lebih baik
-    response(200, result.rows, 'Data Auditee ditemukan', res);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Data tidak ditemukan' });
+    }
+
+    try {
+      const apiUrl = process.env.VITE_API_URL;
+      if (!apiUrl) {
+        throw new Error('VITE_API_URL tidak diset dalam file .env');
+      }
+  
+      console.log('Menggunakan API URL:', apiUrl);
+  
+      const apiResponse = await axios.get(apiUrl);
+      const apiData = apiResponse.data.data;
+
+      if (!Array.isArray(apiData)) {
+        throw new Error('Data dari API eksternal bukan array');
+      }
+
+      const combinedData = result.rows.map(dbUser => {
+        const apiUser = apiData.find(apiUser => apiUser.nik === dbUser.n_audusr_usrnm);
+        return {
+          ...dbUser,
+          organisasi: apiUser ? apiUser.organisasi : null
+        };
+      });
+
+      res.json({ payload: combinedData });
+    } catch (error) {
+      console.error('Error fetching data from external API:', error);
+      res.status(500).json({ 
+        error: 'Terjadi kesalahan saat mengambil data dari API eksternal',
+        details: error.message 
+      });
+    }
   } catch (error) {
-    console.error('Error executing query', error.stack);
-    response(500, [], 'Terjadi kesalahan saat mengambil data Auditee', res);
+    console.error('Error fetching karyawan:', error);
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan saat mengambil data karyawan dari database',
+      details: error.message 
+    });
   }
 };
 
-//-- MEMILIH AUDITEE  masih ada kesalahan
+//-- MEMILIH AUDITEE 
 const UpdateAuditee = async (req, res) => {
   console.log('Data yang diterima di backend:', req.body);
   try {

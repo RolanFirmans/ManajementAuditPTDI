@@ -53,7 +53,7 @@ const getKaryawan = async (req, res) => {
   try {
     // 1. Ambil data dari tabel TMAUDUSR
     const result = await pool.query(`
-      SELECT n_audusr_usrnm, N_AUDUSR, C_AUDUSR_ROLE AS role
+      SELECT i_audusr, n_audusr_usrnm, N_AUDUSR, C_AUDUSR_ROLE AS role
       FROM TMAUDUSR
     `);
 
@@ -102,17 +102,17 @@ const getKaryawan = async (req, res) => {
 
 // Endpoint DELETE untuk DELETE datana
 const deleteKaryawan = async (req, res) => {
-  const id = req.params.id;
-  console.log('Terima delete berdasarkan i_audusr:', id);
+  const i_audusr = req.params.id;
+  console.log('Terima delete berdasarkan i_audusr:', i_audusr);
 
-  if (!id) {
+  if (!i_audusr) {
     return res.status(400).json({ error: 'i_audusr tidak valid' });
   }
 
   const query = 'DELETE FROM TMAUDUSR WHERE i_audusr = $1 RETURNING *';
 
   try {
-    const result = await pool.query(query, [id]);
+    const result = await pool.query(query, [i_audusr]);
     
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Data karyawan tidak ditemukan' });
