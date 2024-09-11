@@ -32,7 +32,7 @@ const createDataKaryawan = async (req, res) => {
     const hashedPassword = await bcrypt.hash(key, saltRounds);
 
     await client.query(`
-      INSERT INTO TMAUDUSR  
+      INSERT INTO AUDIT.TMAUDUSR  
       (N_AUDUSR_USRNM, N_AUDUSR, C_AUDUSR_ROLE, n_audusr_pswd)
       VALUES ($1, $2, $3, $4)
     `, [key, key1, roleInt, hashedPassword]);
@@ -51,10 +51,10 @@ const createDataKaryawan = async (req, res) => {
 
 const getKaryawan = async (req, res) => {
   try {
-    // 1. Ambil data dari tabel TMAUDUSR
+    // 1. Ambil data dari tabel AUDIT.AUDIT.AUDIT.AUDIT.AUDIT.TMAUDUSR
     const result = await pool.query(`
       SELECT i_audusr, n_audusr_usrnm, N_AUDUSR, C_AUDUSR_ROLE AS role
-      FROM TMAUDUSR
+      FROM AUDIT.TMAUDUSR
     `);
 
     if (result.rows.length === 0) {
@@ -109,7 +109,7 @@ const deleteKaryawan = async (req, res) => {
     return res.status(400).json({ error: 'i_audusr tidak valid' });
   }
 
-  const query = 'DELETE FROM TMAUDUSR WHERE i_audusr = $1 RETURNING *';
+  const query = 'DELETE FROM AUDIT.TMAUDUSR WHERE i_audusr = $1 RETURNING *';
 
   try {
     const result = await pool.query(query, [i_audusr]);
@@ -160,7 +160,7 @@ const updateKaryawan = async (req, res) => {
     if (roleInt <= 3) {
       // Jika role <= 3, ambil data dari tabel `karyawan`
       updateQuery = `
-        UPDATE TMAUDUSR SET 
+        UPDATE AUDIT.TMAUDUSR SET 
           N_AUDUSR = (SELECT nama FROM karywan WHERE nik = $1),
           C_AUDUSR_ROLE = $2,
           C_AUDUSR_AUDR = (SELECT organisasi FROM karyawan WHERE nik = $1),
@@ -171,7 +171,7 @@ const updateKaryawan = async (req, res) => {
     } else {
       // Jika role > 3, update langsung dari input
       updateQuery = `
-        UPDATE TMAUDUSR SET 
+        UPDATE AUDIT.TMAUDUSR SET 
           N_AUDUSR = $1,
           C_AUDUSR_ROLE = $2,
           C_AUDUSR_AUDR = $3

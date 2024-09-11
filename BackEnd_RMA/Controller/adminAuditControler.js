@@ -7,27 +7,26 @@ const response = require('../response');
 
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
 const GetDataEvidence = async (req, res) => {
-    try {
-      const currentYear = new Date().getFullYear();  // Mendapatkan tahun saat ini
+  try {
+      const currentYear = new Date().getFullYear().toString();
       const result = await pool.query(
-        'SELECT * FROM TMAUDEVD WHERE EXTRACT(YEAR FROM C_AUDEVD_YR) = $1', [currentYear]
+          'SELECT * FROM audit.tmaudevd WHERE EXTRACT(YEAR FROM TO_DATE(C_YEAR, \'YYYY\')) = $1',
+          [currentYear]
       );
       
       // Menggunakan fungsi response yang sudah didefinisikan sebelumnya
       response(200, result.rows, 'Data ditemukan', res);
-    } catch (error) {
+  } catch (error) {
       console.error('Error executing query', error.stack);
-
       response(500, [], 'Terjadi kesalahan', res);
-    }
+  }
 };
-
 // --MENAMPILKAN DATA AUDITEE
 const GetAuditee = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT t.n_audusr_usrnm, t.N_AUDUSR, t.c_audusr_role
-      FROM TMAUDUSR t
+      FROM audit.TMAUDUSR t
     `);
 
     if (result.rows.length === 0) {
@@ -85,7 +84,7 @@ const UpdateAuditee = async (req, res) => {
     }
 
     const updateQuery = `
-    UPDATE tmaudevd
+    UPDATE audit.tmaudevd
     SET i_audevd_aud = $2
     WHERE i_audevd = $1
     RETURNING *;
@@ -110,8 +109,8 @@ const GetMenampilkanAuditee = async (req, res) => {
     // Query dengan huruf kecil
       const result = await pool.query(`
           select b.n_audusr_usrnm, b.n_audusr
-          from tmaudevd a 
-          join tmaudusr b on a.i_audevd_aud = b.n_audusr_usrnm
+          from audit.tmaudevd a 
+          join audit.tmaudusr b on a.i_audevd_aud = b.n_audusr_usrnm
       `);
 
       // Mengirimkan data auditee yang terpilih
@@ -155,7 +154,7 @@ const getDataRemarks = async (req, res) => {
     // Jika key tidak ada, ambil semua data
     const postgres = `
       SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 
-      FROM TMAUDEVDFILE
+      FROM audit.tmaudevdFILE
     `;
 
     try {
@@ -171,7 +170,7 @@ const getDataRemarks = async (req, res) => {
   // Jika key ada, gunakan untuk filter
   const postgres = `
     SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 
-    FROM TMAUDEVDFILE
+    FROM audit.tmaudevdFILE
     WHERE i_audevdfile = $1 
   `;
 
@@ -199,7 +198,7 @@ const getDataRemarks = async (req, res) => {
 // UPDATE STATUS ADMIN AUDIT IT 
 const updateStatus = async (req, res) => {
   const key = req.body.I_AUDEVD;
-  const postgres = `update tmaudevd set c_audevd_statcmpl = 2 where i_audevd = $1 returning *
+  const postgres = `update audit.tmaudevd set c_audevd_statcmp = 2 where i_audevd = $1 returning *
 `;
 
   try {
@@ -268,7 +267,7 @@ const updateStatus = async (req, res) => {
 const GetTitle = async (req, res) => {
   const key = req.params.I_AUDEVD; // Mengambil nilai I_AUDEVD dari request params
   const postgres = `
-      SELECT N_AUDEVD_TITLE FROM TMAUDEVD WHERE I_AUDEVD=$1
+      SELECT N_AUDEVD_TITLE FROM audit.tmaudevd WHERE I_AUDEVD=$1
     `;
 
   pool.query(postgres, [key], (error, result) => {
@@ -289,7 +288,7 @@ const CreateKomen = async (req, res) => {
   const { key1, key2, key3, key4, key5 } = req.body;
 
   const postgres = `
-  INSERT INTO TMAUDEVDCOMNT 
+  INSERT INTO audit.tmaudevdCOMNT 
   (I_AUDEVD, I_AUDEVDCOMNT_PRNT, E_AUDEVDCOMNT_CONTN, D_AUDEVDCOMNT_DT, I_AUDEVDCOMNT_AUT)
   VALUES ($1, $2, $3, $4, $5)`;
 
@@ -308,7 +307,7 @@ const GetReviewEvidence = async (req, res) =>{
   const postgres = `
   SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
   A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
-  FROM TMAUDEVDCOMNT A, TMAUDUSR B 
+  FROM audit.tmaudevdCOMNT A, TMAUDUSR B 
   WHERE A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM AND A.I_AUDEVD = $1 AND 
   A.I_AUDEVDCOMNT_PRNT = 0
   ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
@@ -330,7 +329,7 @@ const GetBalasanReviewEvidence = async (req, res) => {
   const postgres = `
   SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
       A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
-      FROM TMAUDEVDCOMNT A
+      FROM audit.tmaudevdCOMNT A
       JOIN TMAUDUSR B ON A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM
       WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDCOMNT_PRNT = $2
       ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
@@ -449,7 +448,7 @@ const CreateKomenBaru = async (req, res) => {
   }
 
   const postgres = `
-    INSERT INTO TMAUDEVDCOMNT (I_AUDEVD, I_AUDEVDCOMNT, E_AUDEVDCOMNT_CONTN)
+    INSERT INTO audit.tmaudevdCOMNT (I_AUDEVD, I_AUDEVDCOMNT, E_AUDEVDCOMNT_CONTN)
     VALUES ($1, $2, $3) RETURNING *`;
 
   pool.query(postgres, [i_audevd, i_audevdcomnt, content], (error, result) => {

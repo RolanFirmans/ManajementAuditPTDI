@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker';
 import { getYear } from 'date-fns';
 import 'react-datepicker/dist/react-datepicker.css';
 import "../App.css";
+import Swal from 'sweetalert2';
 
 Modal.setAppElement("#root");
 
@@ -61,10 +62,22 @@ const EvidenceAait = () => {
     }
   };
 
-  const convertStatusComplete = (statusComplete, hasRemarks = false) => {
-    if (statusComplete === 3) {
-      return { text: "COMPLETE SPI", backgroundColor: "green", color: "white" };
+  const convertPhase = (phase) => {
+    switch (phase) {
+      case 1:
+        return "Perencanaan";
+      case 2:
+        return "Pelaksanaan";
+      case 3:
+        return "Pelaporan";
+      default:
+        return "unknown";
     }
+
+  }
+
+  const convertStatusComplete = (statusComplete, hasRemarks = false) => {
+    console.log('Converting status:', statusComplete, 'hasRemarks:', hasRemarks);
     if (statusComplete === 2) { 
       return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
     }
@@ -94,13 +107,14 @@ const EvidenceAait = () => {
   };
 
   const handleYearChange = (date) => {
-    const year = date ? getYear(date) : "";
+    const year = date ? getYear(date).toString() : "";
     setSelectedYear(year);
   };
+
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
   const filteredOrders = selectedYear
-    ? orders.filter((order) => order.publishingYear === parseInt(selectedYear))
-    : orders;
+  ? orders.filter((order) => order.publishingYear === selectedYear)
+  : orders;
 
   const fetchDataByYear = useCallback(async (year) => {
     if (year) {
@@ -109,20 +123,29 @@ const EvidenceAait = () => {
           params: { year: year }
         });
         if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-          const formattedData = response.data.payload.data.map(item => ({
-            no: item.i_audevd,
-            dataAndDocumentNeeded: item.n_audevd_tittle,
-            phase: item.n_audevd_phs,
-            status: convertStatus(item.c_audevd_stat),
-            deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-            remarksByAuditee: "",
-            remarksByAuditor: item.n_audevd_audr,
-            auditee: { nik: '', name: '' },
-            auditor: convertAuditor(item.c_audevd_audr),
-            statusComplete: convertStatusComplete(item.c_audevd_statcmpl, false),
-            publishingYear: new Date(item.c_audevd_yr).getFullYear(),
-            i_audevd_aud: item.i_audevd_aud || '', 
-          }));
+          const formattedData = response.data.payload.data.map(item => {
+            const storedOrder = JSON.parse(localStorage.getItem("orders") || "[]")
+              .find(o => o.no === item.i_audevd);
+            return {
+              no: item.i_audevd,
+              dataAndDocumentNeeded: item.n_audevd_title,
+              phase: convertPhase(item.e_audevd_phs),
+              status: convertStatus(item.c_audevd_stat),
+              deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
+              remarksByAuditee: "",
+              remarksByAuditor: item.e_audevd_audr,
+              auditee: { nik: '', name: '' },
+              auditor: convertAuditor(item.c_audevd_audr),
+              statusComplete: convertStatusComplete(
+                storedOrder ? storedOrder.statusComplete : item.c_audevd_statcmp,
+                false,
+                storedOrder ? storedOrder.isUpdated : false
+              ),
+              publishingYear: item.c_year,
+              i_audevd_aud: item.i_audevd_aud || '',
+              isUpdated: storedOrder ? storedOrder.isUpdated : false,
+            };
+          });
           setOrders(formattedData);
           for (const order of formattedData) {
             await GetAuditee(order.no, order.i_audevd_aud);
@@ -204,6 +227,11 @@ const handleSelectAuditee = async () => {
       ));
       setIsEditModalOpen(false);
       setSelectedAuditees({});
+      Swal.fire({
+        title: "Good job!",
+        text: `Data berhasil di Upload`,
+        icon: "success"
+      });
     } else {
       console.error("Gagal memperbarui auditee:", response.data ? response.data.message : "Respons tidak valid");
     }
@@ -268,7 +296,9 @@ const fetchRemarks = async (key) => {
         order.no === key ? { 
           ...order, 
           remarksByAuditee,
-          statusComplete: convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : (hasRemarks ? 2 : 0), hasRemarks)
+          statusComplete: order.isUpdated 
+            ? order.statusComplete 
+            : convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : hasRemarks ? 1 : 0, hasRemarks)
         } : order
       ));
     }
@@ -278,25 +308,32 @@ const fetchRemarks = async (key) => {
 };
 
 const handleUpdateStatus = async (order) => {
-  try {
-    const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-status`, {
-      I_AUDEVD: order.no
-    });
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-status`, {
+        I_AUDEVD: order.no
+      });
 
-    if (response.data && response.data.message === "Update Status Berhasil") {
-      console.log("Status berhasil diperbarui");
-      setOrders(prevOrders => prevOrders.map(o => 
-        o.no === order.no 
-          ? { ...o, statusComplete: convertStatusComplete(2, true) } 
-          : o
-      ));
-    } else {
-      console.error("Gagal memperbarui status:", response.data ? response.data.message : "Respons tidak valid");
+      if (response.data && response.data.message === "Update Status Berhasil") {
+        console.log("Status berhasil diperbarui");
+        setOrders(prevOrders => prevOrders.map(o => 
+          o.no === order.no 
+            ? { ...o, statusComplete: convertStatusComplete(2, true, true), isUpdated: true } 
+            : o
+        ));
+        // Simpan status yang diperbarui ke localStorage
+        const updatedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+        const updatedOrderIndex = updatedOrders.findIndex(o => o.no === order.no);
+        if (updatedOrderIndex !== -1) {
+          updatedOrders[updatedOrderIndex] = { ...updatedOrders[updatedOrderIndex], statusComplete: 2, isUpdated: true };
+          localStorage.setItem("orders", JSON.stringify(updatedOrders));
+        }
+      } else {
+        console.error("Gagal memperbarui status:", response.data ? response.data.message : "Respons tidak valid");
+      }
+    } catch (error) {
+      console.error("Error saat memperbarui status:", error.response ? error.response.data : error.message);
     }
-  } catch (error) {
-    console.error("Error saat memperbarui status:", error.response ? error.response.data : error.message);
-  }
-};
+  };
 
 useEffect(() => {
     if (selectedYear) {
@@ -324,6 +361,7 @@ const handlePageChange = (pageNumber) => {
   return (
     <div className="evidence-content">
       <h2>Data Evidence</h2>
+      <h2>Data Evidence</h2>
       <div className="filter-year-evidence">
         <label>Filter Berdasarkan Tahun Penerbitan: </label>
         <DatePicker
@@ -333,7 +371,7 @@ const handlePageChange = (pageNumber) => {
           dateFormat="yyyy"
           placeholderText="Select year" 
         />
-      </div>
+      </div>  
       <div className="evidence-table">
         <table>
           <thead>
@@ -368,7 +406,7 @@ const handlePageChange = (pageNumber) => {
                       <td>
                       {order.auditee && order.auditee.nik ? 
                         `${order.auditee.nik} - ${order.auditee.name}` : 
-                        "Belum ada auditee"
+                        "-"
                       }
                     </td>                 
                     <td>{order.auditor}</td>

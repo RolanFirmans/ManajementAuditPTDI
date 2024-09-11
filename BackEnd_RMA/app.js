@@ -4,6 +4,31 @@ const cors = require('cors')
 const port = 3100;
 const host = process.env.PGHOST;
 const dontenv = require('dotenv')
+dontenv.config()
+
+const { Pool } = require('pg'); // Import pg untuk koneksi ke database
+
+// Buat pool untuk koneksi ke database
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: process.env.PGPORT,
+});
+
+// Periksa koneksi ke database
+pool.connect((err, client, release) => {
+  if (err) {
+    // Jika terjadi error saat menghubungkan ke database
+    console.error('Error menghubungkan ke database', err.stack);
+  } else {
+    // Jika berhasil terhubung ke database
+    console.log('Berhasil terhubung ke database');
+    release(); // Melepaskan koneksi setelah selesai digunakan
+  }
+});
+
 
 const auditLogin = require('./Routes/login');
 const auditRoutes = require('./Routes/audit');
@@ -33,9 +58,8 @@ app.use("/SPI", auditSpi)
 
 // ADMIN AUDIT IT
 app.use("/AuditIT", AdminauditIt)
-dontenv.config()
 
 
 app.listen(port, () => {
   console.log(`Server has been running in http://${host}:${port}`);
-})
+});

@@ -4,6 +4,7 @@ import DataKaryawan from './DataKaryawan'; // Import DataKaryawan component
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Swal from 'sweetalert2';
 
 Modal.setAppElement('#root');
 
@@ -113,13 +114,22 @@ const DataUser = () => {
       const responseData = await response.json();
       console.log('Data respon:', responseData);
   
-      alert('Pengguna berhasil ditambahkan');
+      Swal.fire({
+        title: "Good job!",
+        text: "Data berhasil di Upload",
+        icon: "success"
+      });
+
       setIsAddUserModalOpen(false);
       fetchKaryawan(); // Refresh daftar karyawan
   
     } catch (error) {
       console.error('Error menambahkan pengguna:', error);
-      alert(`Error menambahkan pengguna: ${error.message}`);
+      Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Error Menambahkan Pengguna!",
+        });
     }
   };
 
@@ -217,22 +227,40 @@ const handleDeleteUser = async (i_audusr) => {
     return;
   }
 
-  if (window.confirm('Apakah Anda yakin ingin menghapus user ini?')) {
-    try {
-      const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Admin/delete-karyawan/${i_audusr}`);
-      
-      if (response.status === 200) {
-        console.log('User berhasil dihapus:', response.data);
-        setOrders(prevOrders => prevOrders.filter(order => order.i_audusr !== i_audusr));
-        toast.success('User berhasil dihapus');
-      } else {
-        throw new Error(response.data.message || 'Gagal menghapus user');
+  // Menampilkan konfirmasi SweetAlert sebelum penghapusan
+  Swal.fire({
+    title: "Apakah Anda yakin?",
+    text: "Anda tidak bisa mengembalikan data ini setelah dihapus!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Ya, hapus!"
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Admin/delete-karyawan/${i_audusr}`);
+        
+        if (response.status === 200) {
+          console.log('User berhasil dihapus:', response.data);
+          setOrders(prevOrders => prevOrders.filter(order => order.i_audusr !== i_audusr));
+          toast.success('User berhasil dihapus');
+          
+          // Menampilkan pesan sukses dengan SweetAlert
+          Swal.fire({
+            title: "Dihapus!",
+            text: "User berhasil dihapus.",
+            icon: "success"
+          });
+        } else {
+          throw new Error(response.data.message || 'Gagal menghapus user');
+        }
+      } catch (error) {
+        console.error('Error saat menghapus user:', error);
+        toast.error(`Gagal menghapus user: ${error.response?.data?.message || error.message}`);
       }
-    } catch (error) {
-      console.error('Error saat menghapus user:', error);
-      toast.error(`Gagal menghapus user: ${error.response?.data?.message || error.message}`);
     }
-  }
+  });
 };
 
 // Panggil handleDeleteUser dengan ID yang sesuai

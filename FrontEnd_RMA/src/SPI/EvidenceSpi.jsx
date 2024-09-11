@@ -62,6 +62,16 @@ const EvidenceSpi = () => {
     }
   };
 
+  const convertPhaseToString = function (phase) {
+    const phaseNumber = Number(phase);
+    switch (phaseNumber) {
+      case 1: return "Perencanaan";
+      case 2: return "Pelaksanaan";
+      case 3: return "Pelaporan";
+      default: return "Unknown Phase";
+    }
+  }
+
   const convertAuditorToNumber = (auditor) => {
     if (typeof auditor !== 'string') {
       console.warn(`Unexpected auditor value: ${auditor}. Using default value.`);
@@ -206,16 +216,16 @@ const handleUpdate = async () => {
         if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
           const formattedData = response.data.payload.data.map(item => ({
             no: item.i_audevd,
-            dataAndDocumentNeeded: item.n_audevd_tittle,
-            phase: item.n_audevd_phs,
+            dataAndDocumentNeeded: item.n_audevd_title,
+            phase: convertPhaseToString(item.e_audevd_phs),
             status: item.c_audevd_stat, // Store the original status value
             deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
             remarksByAuditee: "",
-            remarksByAuditor: item.n_audevd_audr,
+            remarksByAuditor: item.e_audevd_audr,
             auditee: { nik: '', name: '' },
             auditor: item.c_audevd_audr, // Store the original auditor value
-            statusComplete: convertStatusComplete(item.c_audevd_statcmpl, false),
-            publishingYear: new Date(item.c_audevd_yr).getFullYear(),
+            statusComplete: convertStatusComplete(item.c_audevd_statcmp, false),
+            publishingYear: new Date(item.c_year).getFullYear(),
             i_audevd_aud: item.i_audevd_aud || '',
           }));
           setOrders(formattedData);
@@ -402,7 +412,7 @@ useEffect(() => {
                     <td>
                     {order.auditee && order.auditee.nik ? 
                       `${order.auditee.nik} - ${order.auditee.name}` : 
-                      "Belum ada auditee"
+                      "-"
                     }
                   </td>                 
                   <td>{convertAuditorToString(order.auditor)}</td>

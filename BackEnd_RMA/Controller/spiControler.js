@@ -93,52 +93,64 @@ const importExcelToDB = async (req, res) => {
 
 // -- SAVE DATA FILE EXCEL KE DALAM DATABASE
 
-const saveDataExcel = async (filePath) => {
+const saveDataExcel = async (filePath, selectedYear) => {
   try {
+    console.log(`Saving data for year: ${selectedYear}`);
+
     // Membaca file Excel
     const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0];
     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-    // Mengambil jumlah data yang sudah ada di tabel TMAUDEVD
-    const result = await pool.query('SELECT COUNT(*) FROM TMAUDEVD');
-    let counter = parseInt(result.rows[0].count) + 1; // Mengatur counter agar dimulai dari jumlah data yang ada + 1
+    // Mengambil jumlah data yang sudah ada di tabel AUDIT.TMAUDEVD
+    const result = await pool.query('SELECT COUNT(*) FROM AUDIT.TMAUDEVD');
+    let counter = parseInt(result.rows[0].count) + 1;
 
-    // Mendapatkan tanggal dan waktu saat ini dalam format ISO
-    const formattedYear = new Date().toISOString();  // Format lengkap tanggal dan waktu UTC
+    // Validasi tahun yang diterima
+    const year = selectedYear || new Date().getFullYear().toString();
+    console.log(`Using year: ${year}`);
 
     // Loop melalui setiap baris dan simpan ke PostgreSQL
     for (const row of sheetData) {
+      // Format tanggal jika ada
+      const deadline = row['Deadline'] ? new Date(row['Deadline']).toISOString().slice(0, 10) : null;
+
       // Mengakses nilai dari row sesuai dengan nama kolom di Excel
       const values = [
-        counter++,  // I_AUDEVD selalu diincrement dari nilai awal counter
-        row['Data & Document Needed'],  // n_audevd_tittle
-        row['Phase'],                   // N_AUDEVD_PHS
-        row['Status'],                  // C_AUDEVD_STAT
-        row['Deadline'],  // D_AUDEVD_DDL, Gunakan tanggal saat ini jika D_AUDEVD_DDL kosong
-        row['Remarks by Auditor'],  // N_AUDEVD_AUDR
-        row['Auditee'],         // I_AUDEVD_AUD
-        row['Auditor'],          // C_AUDEVD_AUDR
-        row['StatusComplete'],           // C_AUDEVD_STATCMPL (Menggunakan Status dua kali, ini mungkin perlu diperiksa apakah itu sesuai dengan kebutuhan)
-        formattedYear,           // Menggunakan formattedYear untuk C_AUDEVD_YR
+        counter++,
+        row['Data & Document Needed'],
+        row['Phase'],
+        row['Status'],
+        deadline,
+        row['Remarks by Auditor'],
+        row['Auditee'],
+        row['Auditor'],
+        row['StatusComplete'],
+        year, // Menggunakan tahun yang diterima dari frontend
       ];
 
       // Query SQL dengan jumlah kolom dan nilai yang sesuai
       const query = `
-        INSERT INTO TMAUDEVD
-        (I_AUDEVD, n_audevd_tittle, N_AUDEVD_PHS, C_AUDEVD_STAT, D_AUDEVD_DDL, N_AUDEVD_AUDR, I_AUDEVD_AUD, C_AUDEVD_AUDR, C_AUDEVD_STATCMPL, C_AUDEVD_YR)
+        INSERT INTO AUDIT.TMAUDEVD
+        (I_AUDEVD, n_audevd_title, e_audevd_phs, C_AUDEVD_STAT, D_AUDEVD_DDL, e_audevd_audr, I_AUDEVD_AUD, C_AUDEVD_AUDR, c_audevd_statcmp, C_YEAR)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `;
-      
+
       // Menjalankan query dengan nilai yang sudah ditentukan
       await pool.query(query, values);
     }
-    
-    console.log('Data has been saved to PostgreSQL');
+
+    console.log(`Data has been saved to PostgreSQL for year ${year}`);
+    return { success: true, message: `Data berhasil disimpan untuk tahun ${year}` };
   } catch (error) {
     console.error('Error saving data to PostgreSQL:', error);
+    throw error;
   }
 };
+
+
+
+
 
 // -- DOWNLOAD TEMPLATE EXCEL
 
@@ -203,7 +215,7 @@ const GetDataEvidence = async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();  // Mendapatkan tahun saat ini
     const result = await pool.query(
-      'SELECT * FROM TMAUDEVD WHERE EXTRACT(YEAR FROM C_AUDEVD_YR) = $1', [currentYear]
+      'SELECT * FROM AUDIT.TMAUDEVD WHERE EXTRACT(YEAR FROM C_YEAR) = $1', [currentYear]
     );
     console.log('Query berhasil dijalankan', result.rows);
     
@@ -227,7 +239,7 @@ const PutDataEvidence = async (req, res) => {
     const {
       key,    // I_AUDEVD
       key1,   // AUDEVD_TITTLE
-      key2,   // N_AUDEVD_PHS
+      key2,   // e_audevd_phs
       key3,   // C_AUDEVD_STAT
       key4,   // D_AUDEVD_DDL
       key5    // C_AUDEVD_AUDR
@@ -258,10 +270,10 @@ const PutDataEvidence = async (req, res) => {
     }
 
     const result = await pool.query(`
-      UPDATE tmaudevd
+      UPDATE AUDIT.TMAUdevd
       SET
-        n_audevd_tittle = $1,
-        n_audevd_phs = $2,
+        n_audevd_title = $1,
+        e_audevd_phs = $2,
         c_audevd_stat = $3,
         d_audevd_ddl = $4,
         c_audevd_audr = $5
@@ -291,7 +303,7 @@ const PutDataEvidence = async (req, res) => {
 
 // -- MENAMPILKAN DATA EVIDENCE
 const GetEvidence = async (req, res) => {
-  const postgres = `SELECT * FROM tmaudevd WHERE c_audevd_yr = $1`;
+  const postgres = `SELECT * FROM AUDIT.TMAUdevd WHERE C_YEAR = $1`;
   pool.query(postgres, [req.params.year], (error, result) => {
     if (error) {
       console.error("Error executing query", error.stack);
@@ -304,10 +316,10 @@ const GetEvidence = async (req, res) => {
 
 // MENAMPILKAN DATA REMARKS BY AUDITEE :
 const getDataRemarks = async (req, res) => {
-  const key = req.query.key; //TMAUDEVD.I_AUDEVD  Mendapatkan nilai dari query parameter atau bisa dari sumber lain
+  const key = req.query.key; //AUDIT.TMAUDEVD.I_AUDEVD  Mendapatkan nilai dari query parameter atau bisa dari sumber lain
   const postgres = `
-    SELECT B.N_AUDEVDFILE_FILE, B.E_AUDEVDFILE_DESC FROM TMAUDEVDFILEDTL A,
-    TMAUDEVDFILE B WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDFILE = B.I_AUDEVDFILE
+    SELECT B.N_AUDEVDFILE_FILE, B.E_AUDEVDFILE_DESC FROM AUDIT.TMAUDEVDFILEDTL A,
+    AUDIT.TMAUDEVDFILE B WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDFILE = B.I_AUDEVDFILE
   `;
   pool.query(postgres, [key], (error, result) => {
     if (error) {
@@ -323,7 +335,7 @@ const GetSelectedAuditee = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT B.N_AUDUSR_USRNM, B.N_AUDUSR_NM
-      FROM TMAUDEVD A, TMAUDUSR B
+      FROM AUDIT.TMAUDEVD A, AUDIT.TMAUDUSR B
       WHERE A.I_AUDEVD_AUD = B.N_AUDUSR_USRNM
     `);
 
@@ -343,7 +355,7 @@ const updateStatus = async (req, res) => {
    if (isNaN(key)) {
     return res.status(400).json({ message: "Invalid ID format" });
   }
-  const postgres = `UPDATE tmaudevd SET c_audevd_statcmpl = 3 WHERE i_audevd = $1 RETURNING *`;
+  const postgres = `UPDATE AUDIT.TMAUdevd SET c_audevd_statcmp = 3 WHERE i_audevd = $1 RETURNING *`;
  
  
   try {
@@ -393,7 +405,7 @@ const updateStatus = async (req, res) => {
 const GetTitle = async (req, res) => {
   const key = req.params.I_AUDEVD; // Mengambil nilai I_AUDEVD dari request params
   const postgres = `
-      SELECT n_audevd_tittle FROM TMAUDEVD WHERE I_AUDEVD=$1
+      SELECT n_audevd_title FROM AUDIT.TMAUDEVD WHERE I_AUDEVD=$1
     `;
 
   pool.query(postgres, [key], (error, result) => {
@@ -414,7 +426,7 @@ const CreateKomen = async (req, res) => {
   const { key1, key2, key3, key4, key5 } = req.body;
 
   const postgres = `
-  INSERT INTO TMAUDEVDCOMNT 
+  INSERT INTO AUDIT.TMAUDEVDCOMNT 
   (I_AUDEVD, I_AUDEVDCOMNT_PRNT, E_AUDEVDCOMNT_CONTN, D_AUDEVDCOMNT_DT, I_AUDEVDCOMNT_AUT)
   VALUES ($1, $2, $3, $4, $5)`;
 
@@ -433,7 +445,7 @@ const GetReviewEvidence = async (req, res) =>{
   const postgres = `
   SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
   A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
-  FROM TMAUDEVDCOMNT A, TMAUDUSR B 
+  FROM AUDIT.TMAUDEVDCOMNT A, AUDIT.TMAUDUSR B 
   WHERE A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM AND A.I_AUDEVD = $1 AND 
   A.I_AUDEVDCOMNT_PRNT = 0
   ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
@@ -455,8 +467,8 @@ const GetBalasanReviewEvidence = async (req, res) => {
   const postgres = `
   SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
       A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
-      FROM TMAUDEVDCOMNT A
-      JOIN TMAUDUSR B ON A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM
+      FROM AUDIT.TMAUDEVDCOMNT A
+      JOIN AUDIT.TMAUDUSR B ON A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM
       WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDCOMNT_PRNT = $2
       ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
 
@@ -484,7 +496,7 @@ const ReplyKomen = async (req, res) => {
   const { key1, key2, key3, key4, key5 } = req.body;
 
   const postgres = `
-  INSERT INTO TMAUDEVDCOMNT 
+  INSERT INTO AUDIT.TMAUDEVDCOMNT 
   (I_AUDEVD, I_AUDEVDCOMNT_PRNT, E_AUDEVDCOMNT_CONTN, D_AUDEVDCOMNT_DT, I_AUDEVDCOMNT_AUT)
   VALUES ($1, $2, $3, $4, $5)`;
 
@@ -519,8 +531,8 @@ const ReplyKomen = async (req, res) => {
 // MENAMPILKAN DATA EVIDENCE DGCA
 const GetEvidenceDGCA  = async (req, res) => {
   const postgres = `
-    SELECT * FROM TMAUDEVD
-    WHERE C_AUDEVD_YR = $1
+    SELECT * FROM AUDIT.TMAUDEVD
+    WHERE C_YEAR = $1
     AND C_AUDEVD_AUDR = 1`;
   pool.query(postgres, [req.params.year], (error, result) => {
     if (error) {
@@ -579,8 +591,8 @@ const GetEvidenceDGCA  = async (req, res) => {
 
 const GetEvidenceFinance  = async (req, res) => {
   const postgres = `
-    SELECT * FROM TMAUDEVD
-    WHERE C_AUDEVD_YR = $1
+    SELECT * FROM AUDIT.TMAUDEVD
+    WHERE C_YEAR = $1
     AND C_AUDEVD_AUDR = 2`;
   pool.query(postgres, [req.params.year], (error, result) => {
     if (error) {
@@ -638,8 +650,8 @@ const GetEvidenceFinance  = async (req, res) => {
 
 const GetEvidenceITML  = async (req, res) => {
   const postgres = `
-    SELECT * FROM TMAUDEVD
-    WHERE C_AUDEVD_YR = $1
+    SELECT * FROM AUDIT.TMAUDEVD
+    WHERE C_YEAR = $1
     AND C_AUDEVD_AUDR = 3`;
   pool.query(postgres, [req.params.year], (error, result) => {
     if (error) {
@@ -700,8 +712,8 @@ const GetEvidenceITML  = async (req, res) => {
 
 const GetEvidenceParkerRussel  = async (req, res) => {
   const postgres = `
-    SELECT * FROM TMAUDEVD
-    WHERE C_AUDEVD_YR = $1
+    SELECT * FROM AUDIT.TMAUDEVD
+    WHERE C_YEAR = $1
     AND C_AUDEVD_AUDR = 4`;
   pool.query(postgres, [req.params.year], (error, result) => {
     if (error) {
@@ -762,8 +774,8 @@ const GetEvidenceParkerRussel  = async (req, res) => {
 // LAST UPDATE
 const GetLastUpdate  = async (req, res) => {
   const postgres = `
-    SELECT D_ENTRY FROM TMAUDEVD
-    WHERE C_AUDEVD_YR = $1 AND C_AUDEVD_AUDR = $2
+    SELECT D_ENTRY FROM AUDIT.TMAUDEVD
+    WHERE C_YEAR = $1 AND C_AUDEVD_AUDR = $2
     `;
   pool.query(postgres, [req.params.year], (error, result) => {
     if (error) {
@@ -778,9 +790,9 @@ const GetLastUpdate  = async (req, res) => {
 const GetSumary  = async (req, res) => {
   const postgres = `
     SELECT AVG(C_AUDEVD_STAT) AS average
-    FROM TMAUDEVD
-    WHERE C_AUDEVD_YR = $1 AND C_AUDEVD_AUDR = $2
-    WHERE C_AUDEVD_YR = $1 AND C_AUDEVD_AUDR = $2
+    FROM AUDIT.TMAUDEVD
+    WHERE C_YEAR = $1 AND C_AUDEVD_AUDR = $2
+    WHERE C_YEAR = $1 AND C_AUDEVD_AUDR = $2
   `;
   pool.query(postgres, [req.params.year], (error, result) => {
     if (error) {
