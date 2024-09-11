@@ -14,7 +14,7 @@ const loginUser = async (req, res) => {
 
     // Cari user berdasarkan NIK pertama
     const result = await pool.query(
-      'SELECT * FROM tmaudusr WHERE n_audusr_usrnm = $1',
+      'SELECT * FROM audit.tmaudusr WHERE n_audusr_usrnm = $1',
       [nik]
     );
 
