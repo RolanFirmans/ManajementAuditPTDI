@@ -30,9 +30,12 @@ const createDataKaryawan = async (req, res) => {
     const hashedPassword = await bcrypt.hash(key, saltRounds);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     await client.query(`
       INSERT INTO AUDIT.TMAUDUSR  
 =======
+=======
+>>>>>>> main
     await client.query(
       `
       INSERT INTO TMAUDUSR  
@@ -114,6 +117,7 @@ const getKaryawan = async (req, res) => {
 // Endpoint DELETE untuk DELETE datana
 const deleteKaryawan = async (req, res) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
   const i_audusr = req.params.id;
   console.log('Terima delete berdasarkan i_audusr:', i_audusr);
 
@@ -134,12 +138,24 @@ const deleteKaryawan = async (req, res) => {
     return res.status(400).json({ error: "i_audusr tidak valid" });
   }
 
+=======
+  const id = req.params.id;
+  console.log("Terima delete berdasarkan i_audusr:", id);
+
+  if (!id) {
+    return res.status(400).json({ error: "i_audusr tidak valid" });
+  }
+
+>>>>>>> main
   const query = "DELETE FROM TMAUDUSR WHERE i_audusr = $1 RETURNING *";
 
   try {
     const result = await pool.query(query, [id]);
 
+<<<<<<< HEAD
 >>>>>>> a919328 (auditee)
+=======
+>>>>>>> main
     if (result.rowCount === 0) {
       return res.status(404).json({ message: "Data karyawan tidak ditemukan" });
     }
