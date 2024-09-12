@@ -20,20 +20,6 @@ const EvidenceAait = () => {
   const [selectedAuditees, setSelectedAuditees] = useState({});
   const itemsPerPage = 10;
 
-  const [newUser, setNewUser] = useState({
-    no: "",
-    dataAndDocumentNeeded: "",
-    phase: "",
-    status: "",
-    deadline: "",
-    remarksByAuditee: "",
-    remarksByAuditor: "",
-    auditee: "",
-    auditor: "",
-    statusComplete: "",
-    publishingYear: "",
-  });
-
   const convertStatus = (status) => {
     switch (status) {
       case 1:
@@ -73,7 +59,6 @@ const EvidenceAait = () => {
       default:
         return "unknown";
     }
-
   }
 
   const convertStatusComplete = (statusComplete, hasRemarks = false) => {
@@ -360,7 +345,6 @@ const handlePageChange = (pageNumber) => {
 
   return (
     <div className="evidence-content">
-      <h2>Data Evidence</h2>
       <h2>Data Evidence</h2>
       <div className="filter-year-evidence">
         <label>Filter Berdasarkan Tahun Penerbitan: </label>

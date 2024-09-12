@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback} from "react";
 import Modal from "react-modal";
 import DatePicker from "react-datepicker";
 import { getYear } from "date-fns";
@@ -13,11 +13,15 @@ Modal.setAppElement("#root");
 const EvidenceAuditee = () => {
   const [orders, setOrders] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [auditeeData, setAuditeeData] = useState([]);
   const [isModalUpload, setIsModalUpload] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
+  const itemsPerPage = 10;
+
   const [newUser, setNewUser] = useState({
     no: "",
     dataAndDocumentNeeded: "",
@@ -60,22 +64,29 @@ const EvidenceAuditee = () => {
     }
   };
 
-  const convertStatusComplete = (statusComplete) => {
-    switch (statusComplete) {
-      case 0:
-        return { text: "NOT COMPLETE", backgroundColor: "red", color: "white" };
+  const convertPhase = (phase) => {
+    switch (phase) {
       case 1:
-        return { text: "COMPLETE AUDITEE", backgroundColor: "orange", color: "white" };
+        return "Perencanaan";
       case 2:
-        return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
+        return "Pelaksanaan";
       case 3:
-        return { text: "COMPLETE SPI", backgroundColor: "green", color: "white" };
-      case 4:
-        return { text: "COMPLETE AUDITOR", backgroundColor: "blue", color: "white" };
-        default:
-          // Rekursif panggilan untuk status 0
-          return convertStatusComplete(0);
+        return "Pelaporan";
+      default:
+        return "unknown";
     }
+  }
+
+
+   const convertStatusComplete = (statusComplete, hasRemarks = false) => {
+    console.log('Converting status:', statusComplete, 'hasRemarks:', hasRemarks);
+    if (statusComplete === 2) { 
+      return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
+    }
+    if (hasRemarks) {
+      return { text: "COMPLETE AUDITEE", backgroundColor: "orange", color: "white" };
+    }
+    return { text: "NOT COMPLETE", backgroundColor: "red", color: "white" };
   };
 
   useEffect(() => {
@@ -225,81 +236,162 @@ const EvidenceAuditee = () => {
   };
 
   const handleYearChange = (date) => {
-    const year = date ? getYear(date) : "";
+    const year = date ? getYear(date).toString() : "";
     setSelectedYear(year);
   };
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
   const filteredOrders = selectedYear
-    ? orders.filter((order) => order.publishingYear === parseInt(selectedYear))
-    : orders;
+  ? orders.filter((order) => order.publishingYear === selectedYear)
+  : orders;
 
-  useEffect(() => {
-    const fetchDataByYear = async () => {
-      if (selectedYear) {
+    const fetchDataByYear = useCallback(async (year) => {
+      if (year) {
         try {
-          const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
-            params: { year: selectedYear }
+          const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/tmau-devd`, {
+            params: { year: year }
           });
           if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-            const formattedData = response.data.payload.data.map(item => ({
-              no: item.i_audevd,
-              dataAndDocumentNeeded: item.n_audevd_tittle,
-              phase: item.n_audevd_phs,
-              status: convertStatus(item.c_audevd_stat),
-              deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-              remarksByAuditee: item.i_entry,
-              remarksByAuditor: item.n_audevd_audr,
-              auditee: item.i_audevd_aud,
-              auditor: convertAuditor(item.c_audevd_audr),
-              statusComplete: convertStatusComplete(item.c_audevd_statcmpl),
-              publishingYear: new Date(item.c_audevd_yr).getFullYear(),
-            }));
+            const formattedData = response.data.payload.data.map(item => {
+              const storedOrder = JSON.parse(localStorage.getItem("orders") || "[]")
+                .find(o => o.no === item.i_audevd);
+              return {
+                no: item.i_audevd,
+                dataAndDocumentNeeded: item.n_audevd_title,
+                phase: convertPhase(item.e_audevd_phs),
+                status: convertStatus(item.c_audevd_stat),
+                deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
+                remarksByAuditee: "",
+                remarksByAuditor: item.e_audevd_audr,
+                auditee: { nik: '', name: '' },
+                auditor: convertAuditor(item.c_audevd_audr),
+                statusComplete: convertStatusComplete(
+                  storedOrder ? storedOrder.statusComplete : item.c_audevd_statcmp,
+                  false,
+                  storedOrder ? storedOrder.isUpdated : false
+                ),
+                publishingYear: item.c_year,
+                i_audevd_aud: item.i_audevd_aud || '',
+                isUpdated: storedOrder ? storedOrder.isUpdated : false,
+              };
+            });
             setOrders(formattedData);
+            for (const order of formattedData) {
+              await GetAuditee(order.no, order.i_audevd_aud);
+              await fetchRemarks(order.no);
+            }
           } else {
             setOrders([]);
             console.log('Data tidak ditemukan atau tidak dalam format array');
-          }            
+          }
         } catch (error) {
           console.error('Error fetching data:', error);
         }
       } else {
         console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan');
       }
-    };
+    }, []);
 
-    fetchDataByYear();
-  }, [selectedYear]);
+    useEffect(() => {
+      if (selectedYear) {
+        fetchDataByYear(selectedYear);
+      }
+    }, [selectedYear, fetchDataByYear]);
 
-    // // --MENAMPILKAN DATA AUDITEE
-    // useEffect(() => {
-    //   const fetchAuditeeData = async () => {
-    //     try {
-    //       const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`);
-    //       if (response.data && Array.isArray(response.data.payload.data)) {
-    //         setAuditeeData(response.data.payload.data);
-    //       } else {
-    //         console.error('Expected an array but got:', response.data.payload.data);
-    //         setAuditeeData([]);
-    //       }
-    //     } catch (error) {
-    //       console.error('Error fetching data:', error);
-    //       setAuditeeData([]);
-    //     }
-    //   };
+  // --MENAMPILKAN DATA AUDITEE
+useEffect(() => {
+  const fetchAuditeeData = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`);
+      if (response.data && Array.isArray(response.data.payload)) {
+        setAuditeeData(response.data.payload);
+      } else {
+        console.error('Expected an array but got:', response.data.payload);
+        setAuditeeData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setAuditeeData([]);
+    }
+  };
 
-    //   if (isEditModalOpen) {
-    //     fetchAuditeeData();
-    //   }
-    // }, [isEditModalOpen]);
+  if (isEditModalOpen) {
+    fetchAuditeeData();
+  }
+}, [isEditModalOpen]);
 
-  // const filteredData = Array.isArray(auditeeData)
-  //   ? auditeeData.filter(
-  //       item =>
-  //         item.n_audusr_usrnm?.includes(searchQuery) ||
-  //         item.n_audusr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //         item.organisasi?.toLowerCase().includes(searchQuery.toLowerCase())
-  //     )
-  //   : [];
+const filteredData = Array.isArray(auditeeData)
+  ? auditeeData.filter(
+      item =>
+        item.n_audusr_usrnm?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.n_audusr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.organisasi?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  : [];
+
+  // -- MENAMPILKAN AUDITEE --
+  const GetAuditee = async (orderNo, i_audevd_aud) => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/selected-auditee`, {
+        params: { i_audevd: orderNo }
+      });
+      if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+        const auditeeDataArray = response.data.payload.data;
+        let matchingAuditee;
+  
+        if (i_audevd_aud) {
+          matchingAuditee = auditeeDataArray.find(auditee => auditee.n_audusr_usrnm === i_audevd_aud);
+        } else if (auditeeDataArray.length > 0) {
+          // Jika i_audevd_aud undefined, ambil auditee pertama dari array
+          matchingAuditee = auditeeDataArray[0];
+          console.log(`i_audevd_aud undefined untuk order ${orderNo}, menggunakan auditee pertama`);
+        }
+        
+        if (matchingAuditee) {
+          setOrders(prevOrders => prevOrders.map(order => 
+            order.no === orderNo 
+              ? { 
+                  ...order, 
+                  auditee: {
+                    nik: matchingAuditee.n_audusr_usrnm,
+                    name: matchingAuditee.n_audusr  
+                  }
+                } 
+              : order
+          ));
+        } else {
+          console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`);
+        }
+      } else {
+        console.error(`Respons tidak valid untuk order ${orderNo}:`, response.data);
+      }
+    } catch (error) {
+      console.error(`Error mengambil data auditee untuk order ${orderNo}:`, error);
+    }
+  };
+
+  // MENAMPILKAN DATA REMARKS BY AUDITEE START :
+const fetchRemarks = async (key) => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/selected-remarks-auditee`, {
+      params: { key: key }
+    });
+    if (response.data && response.data.payload && response.data.payload.data && response.data.payload.data.length > 0) {
+      const remarksByAuditee = response.data.payload.data[0].e_audevdfile_desc || "";
+      const hasRemarks = remarksByAuditee.trim() !== "";
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.no === key ? { 
+          ...order, 
+          remarksByAuditee,
+          statusComplete: order.isUpdated 
+            ? order.statusComplete 
+            : convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : hasRemarks ? 1 : 0, hasRemarks)
+        } : order
+      ));
+    }
+  } catch (error) {
+    console.error('Error fetching remarks for key', key, ':', error);
+  }
+};
 
   return (
     <div className="evidence-content">
@@ -332,17 +424,24 @@ const EvidenceAuditee = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((order, index) => (
+          {filteredOrders.length > 0 ? (
+            filteredOrders.map((order, index) => {
+              // Cari data auditee berdasarkan `order.auditee`
+              return (
                 <tr key={order.no || index}>
                   <td>{order.no}</td>
                   <td>{order.dataAndDocumentNeeded}</td>
                   <td>{order.phase}</td>
                   <td>{order.status}</td>
                   <td>{order.deadline}</td>
-                  <td>{order.remarksByAuditee}</td>
+                  <td>{order.remarksByAuditee !== undefined ? order.remarksByAuditee : "Loading..." }</td>
                   <td>{order.remarksByAuditor}</td>
-                  <td>{order.auditee}</td>
+                  <td>
+                      {order.auditee && order.auditee.nik ? 
+                        `${order.auditee.nik} - ${order.auditee.name}` : 
+                        "-"
+                      }
+                    </td>                
                   <td>{order.auditor}</td>
                   <td style={{ backgroundColor: order.statusComplete.backgroundColor, color: order.statusComplete.color }}>
                     {order.statusComplete.text}
@@ -354,9 +453,10 @@ const EvidenceAuditee = () => {
                     <button onClick={() => handleKomentar(order)}>Komentar</button>
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
+              );
+            })
+          ) : (             
+            <tr>
                 <td colSpan="11">Tidak ada data untuk ditampilkan</td>
               </tr>
             )}

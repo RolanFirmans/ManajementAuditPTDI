@@ -212,19 +212,18 @@ const DownloadFileExcel = async (req, res) => {
 
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
 const GetDataEvidence = async (req, res) => {
-  try {
-    const currentYear = new Date().getFullYear();  // Mendapatkan tahun saat ini
-    const result = await pool.query(
-      'SELECT * FROM AUDIT.TMAUDEVD WHERE EXTRACT(YEAR FROM C_YEAR) = $1', [currentYear]
-    );
-    console.log('Query berhasil dijalankan', result.rows);
-    
-    // Menggunakan fungsi response yang sudah didefinisikan sebelumnya
-    response(200, result.rows, 'Data ditemukan', res);
+    try {
+      const currentYear = new Date().getFullYear().toString();
+      const result = await pool.query(
+          'SELECT * FROM audit.tmaudevd WHERE EXTRACT(YEAR FROM TO_DATE(C_YEAR, \'YYYY\')) = $1',
+          [currentYear]
+      );
+      
+      // Menggunakan fungsi response yang sudah didefinisikan sebelumnya
+      response(200, result.rows, 'Data ditemukan', res);
   } catch (error) {
-    console.error('Error executing query', error.stack);
-
-    response(500, [], 'Terjadi kesalahan', res);
+      console.error('Error executing query', error.stack);
+      response(500, [], 'Terjadi kesalahan', res);
   }
 };
 
@@ -333,17 +332,18 @@ const getDataRemarks = async (req, res) => {
 // -- MENAMPILKAN AUDITEE
 const GetSelectedAuditee = async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT B.N_AUDUSR_USRNM, B.N_AUDUSR_NM
-      FROM AUDIT.TMAUDEVD A, AUDIT.TMAUDUSR B
-      WHERE A.I_AUDEVD_AUD = B.N_AUDUSR_USRNM
-    `);
+    // Query dengan huruf kecil
+      const result = await pool.query(`
+          select b.n_audusr_usrnm, b.n_audusr
+          from audit.tmaudevd a 
+          join audit.tmaudusr b on a.i_audevd_aud = b.n_audusr_usrnm
+      `);
 
-    // Mengirimkan data auditee yang terpilih
-    response(200, result.rows, 'Data Auditee terpilih ditemukan', res);
+      // Mengirimkan data auditee yang terpilih
+      response(200, result.rows, 'Data Auditee terpilih ditemukan', res);
   } catch (error) {
-    console.error('Error executing query', error.stack);
-    response(500, [], 'Terjadi kesalahan saat mengambil data Auditee terpilih', res);
+      console.error('Error executing query', error.stack);
+      response(500, [], 'Terjadi kesalahan saat mengambil data Auditee terpilih', res);
   }
 };
 

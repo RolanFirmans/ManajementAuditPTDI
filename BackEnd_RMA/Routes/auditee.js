@@ -36,7 +36,6 @@ const {
   MenampilkanReviewFileAuditee,
   MenampilkanBalsanReviewAuditee,
   UploadNewFileAuditee,
-  getFileAuditee,
   downloadFileAuditee,
 } = require("../Controller/auditeeControler");
 
@@ -71,7 +70,6 @@ router.get(
 );
 
 // TEST
-router.get("/get-test", getFileAuditee);
 router.get("/download/:filename", downloadFileAuditee);
 
 // POST

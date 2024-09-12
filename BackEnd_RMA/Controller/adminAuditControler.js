@@ -21,6 +21,7 @@ const GetDataEvidence = async (req, res) => {
       response(500, [], 'Terjadi kesalahan', res);
   }
 };
+
 // --MENAMPILKAN DATA AUDITEE
 const GetAuditee = async (req, res) => {
   try {

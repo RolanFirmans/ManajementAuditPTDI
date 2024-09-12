@@ -58,8 +58,8 @@ const response = require('../response');
 //       const sheetName = workbook.SheetNames[0];
 //       const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
   
-//       // Mengambil jumlah data yang sudah ada di tabel TMAUDEVD
-//       const result = await pool.query('SELECT COUNT(*) FROM TMAUDEVD');
+//       // Mengambil jumlah data yang sudah ada di tabel AUDIT.TMAUDEVD
+//       const result = await pool.query('SELECT COUNT(*) FROM AUDIT.TMAUDEVD');
 //       let counter = parseInt(result.rows[0].count) + 1; // Mengatur counter agar dimulai dari jumlah data yang ada + 1
   
 //       // Mendapatkan tanggal dan waktu saat ini dalam format ISO
@@ -83,7 +83,7 @@ const response = require('../response');
   
 //         // Query SQL dengan jumlah kolom dan nilai yang sesuai
 //         const query = `
-//           INSERT INTO TMAUDEVD
+//           INSERT INTO AUDIT.TMAUDEVD
 //           (I_AUDEVD, N_AUDEVD_TITLE, N_AUDEVD_PHS, C_AUDEVD_STAT, D_AUDEVD_DDL, N_AUDEVD_AUDR, I_AUDEVD_AUD, C_AUDEVD_AUDR, C_AUDEVD_STATCMPL, C_AUDEVD_YR)
 //           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 //         `;
@@ -107,8 +107,8 @@ const response = require('../response');
 
 //     const postgresQuery = `
 //       SELECT * 
-//       FROM TMAUDEVD A
-//       INNER JOIN TMAUDUSR B
+//       FROM AUDIT.TMAUDEVD A
+//       INNER JOIN AUDIT.TMAUDUSR B
 //       ON A.I_AUDEVD_AUD = B.N_AUDUSR_USRNM
 //       WHERE A.C_AUDEVD_YR = $1
 //     `;
@@ -137,13 +137,13 @@ const UploadFileTitleItem = async (req, res) => {
     if (key1) {
       // Jika I_AUDEVD disertakan dalam query, maka query berdasarkan I_AUDEVD
       postgresQuery = `
-        SELECT N_AUDEVD_TITTLE FROM TMAUDEVD WHERE I_AUDEVD = $1
+        SELECT n_audevd_title FROM AUDIT.TMAUDEVD WHERE I_AUDEVD = $1
       `;
       queryParams = [key1];
     } else {
       // Jika I_AUDEVD tidak disertakan, ambil semua data
       postgresQuery = `
-        SELECT N_AUDEVD_TITTLE FROM TMAUDEVD
+        SELECT n_audevd_title FROM AUDIT.TMAUDEVD
       `;
     }
 
@@ -168,7 +168,7 @@ const UploadFileTitleItem = async (req, res) => {
 
 const GetSearchFile = async (req, res) => {
   const postgres = `
-  SELECT * FROM TMAUDEVDFILE`;
+  SELECT * FROM AUDIT.TMAUDEVDFILE`;
 
   pool.query(postgres, (error, result) => {
     if (error) {
@@ -206,7 +206,7 @@ const UploadNewFile = async (req, res) => {
 
   try {
     console.log(`Fetching I_AUDEVD for auditeeId: ${auditeeId}`);
-    const query1 = 'SELECT I_AUDEVD FROM TMAUDEVD WHERE id = $1';
+    const query1 = 'SELECT I_AUDEVD FROM AUDIT.TMAUDEVD WHERE id = $1';
     const result1 = await pool.query(query1, [auditeeId]);
 
     if (result1.rows.length === 0) {
@@ -215,7 +215,7 @@ const UploadNewFile = async (req, res) => {
     }
 
     const TMAUDEVD = result1.rows[0];
-    const key3 = TMAUDEVD.i_audevd;
+    const key3 = AUDIT.TMAUDEVD.i_audevd;
     console.log(`I_AUDEVD found: ${key3}`);
 
     const fileName = file.originalname;
@@ -223,17 +223,17 @@ const UploadNewFile = async (req, res) => {
     console.log(`File received: ${fileName}, path: ${filePath}`);
 
     const query2 = `
-      INSERT INTO TMAUDEVDFILE (N_AUDEVDFILE_FILE, E_AUDEVDFILE_DESC)
+      INSERT INTO AUDIT.TMAUDEVDFILE (N_AUDEVDFILE_FILE, E_AUDEVDFILE_DESC)
       VALUES ($1, $2)
       RETURNING I_AUDEVDFILE;
     `;
-    console.log("Inserting new file into TMAUDEVDFILE");
+    console.log("Inserting new file into AUDIT.TMAUDEVDFILE");
     const result2 = await pool.query(query2, [fileName, description]);
     const generatedKey = result2.rows[0].i_audevfile;
     console.log(`File inserted with I_AUDEVDFILE: ${generatedKey}`);
 
     const query3 = `
-      INSERT INTO TMAUDEVDFILEDTL (I_AUDEVD, I_AUDEVDFILE)
+      INSERT INTO AUDIT.TMAUDEVDFILEDTL (I_AUDEVD, I_AUDEVDFILE)
       VALUES ($1, $2);
     `;
     console.log(`Linking file with I_AUDEVD: ${key3}`);
@@ -251,20 +251,20 @@ const UploadNewFile = async (req, res) => {
 
 
 // const UploadNewFile = async (req, res) => {
-//   const TMAUDEVD = I_AUDEVD
+//   const AUDIT.TMAUDEVD = I_AUDEVD
 //   // = { I_AUDEVD: 'some_value_for_key3' }; // Buat test Postman
 
-//   const TMAUDEVDFILE = I_AUDEVDFILE
+//   const AUDIT.TMAUDEVDFILE = I_AUDEVDFILE
 //   // = { I_AUDEVDFILE: 'some_value_for_key4' }; // Buat test Postman
 
-//   const key3 = TMAUDEVD.I_AUDEVD;
-//   const key4 = TMAUDEVDFILE.I_AUDEVDFILE;
+//   const key3 = AUDIT.TMAUDEVD.I_AUDEVD;
+//   const key4 = AUDIT.TMAUDEVDFILE.I_AUDEVDFILE;
 
 //   const { key1, key2 } = req.body;
 
 //   // Query pertama
 //   const query1 = `
-//     INSERT INTO TMAUDEVDFILE (N_AUDEVDFILE_FILE, E_AUDEVDFILE_DESC)
+//     INSERT INTO AUDIT.TMAUDEVDFILE (N_AUDEVDFILE_FILE, E_AUDEVDFILE_DESC)
 //     VALUES ($1, $2)
 //     RETURNING I_AUDEVDFILE;
 //   `;
@@ -278,7 +278,7 @@ const UploadNewFile = async (req, res) => {
 
 //     // Query kedua
 //     const query2 = `
-//       INSERT INTO TMAUDEVDFILEDTL (I_AUDEVD, I_AUDEVDFILE)
+//       INSERT INTO AUDIT.TMAUDEVDFILEDTL (I_AUDEVD, I_AUDEVDFILE)
 //       VALUES ($1, $2);
 //     `;
 
@@ -299,13 +299,13 @@ const UploadNewFile = async (req, res) => {
 
 const MemilihFile = async (req, res) => {
   const TMAUDEVD = { I_AUDEVD: 'some_value_for_key3' }; // Buat test Postman
-  const TMAUDEVDFILE = { I_AUDEVDFILE: 'some_value_for_key4' }; // Buat test Postman
+  const MAUDEVDFILE = { I_AUDEVDFILE: 'some_value_for_key4' }; // Buat test Postman
 
   const key3 = TMAUDEVD.I_AUDEVD
   const key4 = TMAUDEVDFILE.I_AUDEVDFILE
 
   const postgres = `
-    INSERT INTO TMAUDEVDFILEDTL (I_AUDEVD, I_AUDEVDFILE)
+    INSERT INTO AUDIT.TMAUDEVDFILEDTL (I_AUDEVD, I_AUDEVDFILE)
     VALUES ($3, $4)
   `;
 
@@ -325,7 +325,7 @@ const MemilihFile = async (req, res) => {
 const DeleteFileRemarksAuditee = async (req, res) => {
   const key1 = TMAUDEVDFILEDTL.I_AUDEVDFILEDTL
   const postgres = `
-    DELETE FROM TMAUDEVDFILEDTL WHERE I_AUDEVDFILEDTL = $1
+    DELETE FROM AUDIT.TMAUDEVDFILEDTL WHERE I_AUDEVDFILEDTL = $1
   `;
 
   pool.query(postgres,[key1], (error, result) => {
@@ -385,7 +385,7 @@ const getDataRemarks = async (req, res) => {
     // Jika key tidak ada, ambil semua data
     const postgres = `
       SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 
-      FROM TMAUDEVDFILE
+      FROM AUDIT.TMAUDEVDFILE
     `;
 
     try {
@@ -401,7 +401,7 @@ const getDataRemarks = async (req, res) => {
   // Jika key ada, gunakan untuk filter
   const postgres = `
     SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 
-    FROM TMAUDEVDFILE
+    FROM AUDIT.TMAUDEVDFILE
     WHERE i_audevdfile = $1 
   `;
 
@@ -454,7 +454,7 @@ const getDataRemarks = async (req, res) => {
 const MenampilkanEvidenceAuditee = async (req, res) => {
   const currentYear = req.query.current_year;
   const postgres = `
-    SELECT * FROM TMAUDEVD A, TMAUDUSR B
+    SELECT * FROM AUDIT.TMAUDEVD A, AUDIT.TMAUDUSR B
     WHERE A.C_AUDEVD_YR = $1
     AND A.I_AUDEVD_AUD = B.N_AUDUSR_USRNM;
     `;
@@ -478,7 +478,7 @@ const MenampilkanEvidenceAuditee = async (req, res) => {
 
 const StatusAuditee = async (req, res) => {
   const key = TMAUDEVD.I_AUDEVD; 
-  const postgres = `UPDATE TMAUDEVD SET C_AUDEVD_STATCMPL = 1 WHERE I_AUDEVD = $1`;
+  const postgres = `UPDATE AUDIT.TMAUDEVD SET C_AUDEVD_STATCMPL = 1 WHERE I_AUDEVD = $1`;
 
   pool.query(postgres, [key], (error, result) => {
     if (error) {
@@ -503,7 +503,7 @@ const DgcaAuditee = async (req, res) => {
   const currentYear = req.query.current_year;
 
   const postgres = `
-    SELECT * FROM TMAUDEVD
+    SELECT * FROM AUDIT.TMAUDEVD
     WHERE C_AUDEVD_YR = $1
     AND C_AUDEVD_AUDR = 1
     AND A.I_AUDEVD_AUD=B.N_AUDUSR_USRNM
@@ -543,7 +543,7 @@ const FinanceAuditee = async (req, res) => {
   const currentYear = req.query.current_year;
 
   const postgres = `
-    SELECT * FROM TMAUDEVD
+    SELECT * FROM AUDIT.TMAUDEVD
     WHERE C_AUDEVD_YR = $1
     AND C_AUDEVD_AUDR = 2
     AND A.I_AUDEVD_AUD=B.N_AUDUSR_USRNM
@@ -578,7 +578,7 @@ const FinanceAuditee = async (req, res) => {
 const ItmlAuditee = async (req, res) => {
   const currentYear = req.query.current_year;
   const postgres = `
-    SELECT * FROM TMAUDEVD
+    SELECT * FROM AUDIT.TMAUDEVD
     WHERE C_AUDEVD_YR = $1
     AND C_AUDEVD_AUDR = 3
     AND A.I_AUDEVD_AUD=B.N_AUDUSR_USRNM
@@ -617,7 +617,7 @@ const ItmlAuditee = async (req, res) => {
 const ParkerRusselAuditee = async (req, res) => {
   const currentYear = req.query.current_year;
   const postgres = `
-    SELECT * FROM TMAUDEVD
+    SELECT * FROM AUDIT.TMAUDEVD
     WHERE C_AUDEVD_YR = $1
     AND C_AUDEVD_AUDR = 4
     AND A.I_AUDEVD_AUD=B.N_AUDUSR_USRNM
@@ -658,7 +658,7 @@ const ParkerRusselAuditee = async (req, res) => {
 
 const ReviewFileAuditee = async (req, res) => {
   const { I_AUDEVD, E_AUDEVDCOMNT_CONTN, D_AUDEVDCOMNT_DT, I_AUDEVDCOMNT_AUT } = req.body;  const postgres = `
-    INSERT INTO TMAUDEVDCOMNT 
+    INSERT INTO AUDIT.TMAUDEVDCOMNT 
     (I_AUDEVD, I_AUDEVDCOMNT_PRNT, E_AUDEVDCOMNT_CONTN, D_AUDEVDCOMNT_DT, I_AUDEVDCOMNT_AUT)
     VALUES ($1, 0, $2, $3, $4) RETURNING *
       `;
@@ -682,7 +682,7 @@ const MenampilkanReviewFileAuditee = async (req, res) => {
   const postgres = `
     SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
     A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
-    FROM TMAUDEVDCOMNT A, TMAUDUSR B 
+    FROM AUDIT.TMAUDEVDCOMNT A, AUDIT.TMAUDUSR B 
     WHERE A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM AND A.I_AUDEVD = $1 AND 
     A.I_AUDEVDCOMNT_PRNT = 0
     ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
@@ -701,14 +701,14 @@ const MenampilkanReviewFileAuditee = async (req, res) => {
 // Get
 
 const MenampilkanBalsanReviewAuditee = async (req, res) => {
-  const key1 = TMAUDEVD.I_AUDEVD; // TMAUDEVD.I_AUDEVD
-  const key2 = TMAUDEVDCOMNT.I_AUDEVDCOMNT; // TMAUDEVDCOMNT.I_AUDEVDCOMNT
+  const key1 = AUDIT.TMAUDEVD.I_AUDEVD; // AUDIT.TMAUDEVD.I_AUDEVD
+  const key2 = AUDIT.TMAUDEVDCOMNT.I_AUDEVDCOMNT; // AUDIT.TMAUDEVDCOMNT.I_AUDEVDCOMNT
 
   const postgres = `
   SELECT A.I_AUDEVDCOMNT, A.I_AUDEVD, A.I_AUDEVDCOMNT_PRNT,
       A.E_AUDEVDCOMNT_CONTN, A.D_AUDEVDCOMNT_DT, A.I_AUDEVDCOMNT_AUT
-      FROM TMAUDEVDCOMNT A
-      JOIN TMAUDUSR B ON A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM
+      FROM AUDIT.TMAUDEVDCOMNT A
+      JOIN AUDIT.TMAUDUSR B ON A.I_AUDEVDCOMNT_AUT = B.N_AUDUSR_USRNM
       WHERE A.I_AUDEVD = $1 AND A.I_AUDEVDCOMNT_PRNT = $2
       ORDER BY A.D_AUDEVDCOMNT_DT ASC`;
 
@@ -759,7 +759,7 @@ const UploadNewFileAuditee = async (req, res) => {
 
     // Query pertama
     const insertFileQuery = `
-      INSERT INTO TMAUDEVDFILE (N_AUDEVDFILE_FILE, E_AUDEVDFILE_DESC) 
+      INSERT INTO AUDIT.TMAUDEVDFILE (N_AUDEVDFILE_FILE, E_AUDEVDFILE_DESC) 
       VALUES ($1, $2) RETURNING I_AUDEVDFILE
     `;
     const insertFileResult = await client.query(insertFileQuery, [filePath, key2]);
@@ -767,7 +767,7 @@ const UploadNewFileAuditee = async (req, res) => {
 
     // Query kedua
     const insertDetailQuery = `
-      INSERT INTO TMAUDEVDFILEDTL (I_AUDEVDFILE) 
+      INSERT INTO AUDIT.TMAUDEVDFILEDTL (I_AUDEVDFILE) 
       VALUES ($1)
     `;
     await client.query(insertDetailQuery, [insertedFileId]);
@@ -812,14 +812,14 @@ const UploadNewFileAuditee = async (req, res) => {
 };
 
 
-const getFileAuditee = async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM files');
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error fetching files:', error.stack);
-    res.status(500).json({ message: 'Error fetching files' });
-  }};
+// const getFileAuditee = async (req, res) => {
+//   try {
+//     const result = await pool.query('SELECT * FROM files');
+//     res.status(200).json(result.rows);
+//   } catch (error) {
+//     console.error('Error fetching files:', error.stack);
+//     res.status(500).json({ message: 'Error fetching files' });
+//   }};
 
 
 // const getTest = async (req, res) => {
@@ -894,7 +894,6 @@ module.exports = {
   MenampilkanReviewFileAuditee,
   MenampilkanBalsanReviewAuditee,
   UploadNewFileAuditee,
-  getFileAuditee,
   downloadFileAuditee,
 
 }
