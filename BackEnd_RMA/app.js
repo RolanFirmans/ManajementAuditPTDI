@@ -8,6 +8,7 @@ const dontenv = require('dotenv')
 const auditLogin = require('./Routes/login');
 const auditRoutes = require('./Routes/audit');
 const auditAdmin = require('./Routes/admin');
+const Auditee = require('./Routes/auditee')
 
 // SPI
 const auditSpi = require('./Routes/spi')
@@ -35,6 +36,8 @@ app.use("/SPI", auditSpi)
 app.use("/AuditIT", AdminauditIt)
 dontenv.config()
 
+// AUDITEE
+app.use("/Auditee", Auditee)
 
 app.listen(port, () => {
   console.log(`Server has been running in http://${host}:${port}`);

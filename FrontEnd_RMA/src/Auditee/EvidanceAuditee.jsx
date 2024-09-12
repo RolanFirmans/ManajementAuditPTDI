@@ -6,7 +6,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 import "../App.css";
 
-import UploadFileExcelAuditee from "../Auditee/UploadFileExcelAuditee"
+import UploadFileAuditee from "../Auditee/UploadFileAuditee"
 
 Modal.setAppElement("#root");
 
@@ -167,7 +167,7 @@ const EvidenceAuditee = () => {
       const bodyData = {
         // key1: newUser.NIK,
         // c_audusr_role: roleValue.toString(),
-        // n_audusr_nm: newUser.Name,
+        // n_audusr: newUser.Name,
         // i_audusr_email: newUser.Email,
 
         key:newUser.no,    // I_AUDEVD
@@ -296,7 +296,7 @@ const EvidenceAuditee = () => {
   //   ? auditeeData.filter(
   //       item =>
   //         item.n_audusr_usrnm?.includes(searchQuery) ||
-  //         item.n_audusr_nm?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //         item.n_audusr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
   //         item.organisasi?.toLowerCase().includes(searchQuery.toLowerCase())
   //     )
   //   : [];
@@ -366,13 +366,18 @@ const EvidenceAuditee = () => {
 
       {/* Upload File Excel */}
 
+
+      
+
+      {/* Upload New File Excel */}
+
       <Modal
         isOpen={isModalUpload}
         onRequestClose={() => setIsModalUpload(false)}
-        contentLabel="Add User Modal"
+        contentLabel="Upload New File Modal"
         className="user-modal"
         overlayClassName="user-modal-overlay">
-        <UploadFileExcelAuditee />
+        <UploadFileAuditee />
       </Modal>
 
       <Modal

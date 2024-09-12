@@ -18,28 +18,33 @@ const UploadFileExcelSpi = () => {
     setFile(selectedFile);
 
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    formData.append("file", selectedFile);
 
     try {
-      const response = await fetch('http://localhost:3100/SPI/upload-file-excel', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch(
+        "http://localhost:3100/SPI/upload-file-excel",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error("Network response was not ok");
       }
 
       const result = await response.json();
-      console.log('File saved successfully:', result);
-      alert('Data sudah terupload!');
+      console.log("File saved successfully:", result);
+      alert("Data sudah terupload!");
     } catch (error) {
-      console.error('There was a problem with the fetch operation:', error);
+      console.error("There was a problem with the fetch operation:", error);
     }
   };
 
   const hasExtension = (fileName, exts) => {
-    return new RegExp(`(${exts.join("|").replace(/\./g, "\\.")})$`).test(fileName);
+    return new RegExp(`(${exts.join("|").replace(/\./g, "\\.")})$`).test(
+      fileName
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -81,7 +86,11 @@ const UploadFileExcelSpi = () => {
       setFile(null);
       setUploadProgress(0);
     } catch (error) {
-      setMessage(<font color="red">ERROR: {error.response?.data.error || 'unable to upload files'}</font>);
+      setMessage(
+        <font color="red">
+          ERROR: {error.response?.data.error || "unable to upload files"}
+        </font>
+      );
       setShowMessage(true);
     }
   };
