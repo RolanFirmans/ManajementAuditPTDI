@@ -177,7 +177,7 @@ const updateKaryawan = async (req, res) => {
 
     // Logika untuk update berdasarkan role
     if (roleInt <= 3) {
-      // Jika role <= 3, ambil data dari tabel `karyawan`
+      // Jika role <= 3, ambil data dari tabel karyawan
       updateQuery = `
         UPDATE AUDIT.TMAUDUSR SET 
           N_AUDUSR = (SELECT nama FROM karywan WHERE nik = $1),
