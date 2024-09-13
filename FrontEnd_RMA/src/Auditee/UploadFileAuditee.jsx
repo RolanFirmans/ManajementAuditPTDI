@@ -19,63 +19,60 @@ const UploadFileAuditee = () => {
   const [error, setError] = useState(null);
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:3100/Auditee/upload-file")
-      .then((response) => {
-        setPlaceholder(
-          response.data?.placeholder || "Exp: Backup & Restoration Management"
-        );
-      })
-      .catch((error) => {
-        console.error("There was an error fetching the data!", error);
-        setPlaceholder("Exp: Backup & Restoration Management");
-      });
-  }, []);
-
-  useEffect(() => {
-    const fetchFiles = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:3100/Auditee/get-test"
-        );
-        setFiles(response.data);
-      } catch (error) {
-        console.error("Error fetching files:", error);
-      }
-    };
-
-    fetchFiles();
-  }, [isModalSearch]);
-
-  useEffect(() => {
-    const filterData = () => {
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      const result = files.filter(
-        (item) =>
-          item.n_audusr_usrnm?.toLowerCase().includes(lowerCaseQuery) ||
-          item.n_audusr_nm?.toLowerCase().includes(lowerCaseQuery) ||
-          item.organisasi?.toLowerCase().includes(lowerCaseQuery)
-      );
-      setFilteredData(result);
-    };
-
-    filterData();
-  }, [searchQuery, files]);
+  // useEffect(() => {
+  //   axios
+  //     .get("http://localhost:3100/Auditee/upload-file")
+  //     .then((response) => {
+  //       setPlaceholder(
+  //         response.data?.placeholder || "Exp: Backup & Restoration Management"
+  //       );
+  //     })
+  //     .catch((error) => {
+  //       console.error("There was an error fetching the data!", error);
+  //       setPlaceholder("Exp: Backup & Restoration Management");
+  //     });
+  // }, []);
 
   useEffect(() => {
     axios
-      .get("http://localhost:3100/Auditee/get-test")
+      .get("http://localhost:3100/Auditee/search-file")
       .then((response) => {
-        setData(response.data);
+        console.log('API Response:', response.data);
+        if (Array.isArray(response.data)) {
+          setData(response.data);
+          setFiles(response.data);
+        } else {
+          console.error('Expected array, got:', response.data);
+        }
         setLoading(false);
       })
       .catch((error) => {
         setError(error);
         setLoading(false);
       });
-  }, []);
-
+  }, []);  
+  
+  // Filter data based on search query
+  useEffect(() => {
+    const filterData = () => {
+      if (!Array.isArray(data)) {
+        console.error('Data is not an array:', data);
+        return;
+      }
+  
+      const lowerCaseQuery = searchQuery.toLowerCase();
+      const result = data.filter(
+        (item) =>
+          item.i_audevdfile?.toLowerCase().includes(lowerCaseQuery) ||
+          item.n_audevdfile_file?.toLowerCase().includes(lowerCaseQuery) ||
+          item.e_audevdfile_desc?.toLowerCase().includes(lowerCaseQuery)
+      );
+      setFilteredData(result);
+    };
+  
+    filterData();
+  }, [searchQuery, data]);
+  
   const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const handleSubmit = async (e) => {
@@ -130,39 +127,38 @@ const UploadFileAuditee = () => {
   const handleCheckboxChange = (file) => {
     setSelectedAuditees((prevSelected) => ({
       ...prevSelected,
-      [file.id]: !prevSelected[file.id] ? file : null,
+      [file.i_audevdfile]: !prevSelected[file.i_audevdfile] ? file : null,
     }));
   };
 
-  const handleUpload1 = async () => {
-    // Cek apakah ada file yang dipilih
-    const selectedFile = Object.values(selectedAuditees).find(
-      (file) => file !== null
-    );
-
-    if (!selectedFile) {
-      alert("Please select a file to upload");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", selectedFile.file_path); // Gunakan path file terpilih dari checkbox
-
-    try {
-      await axios.post("http://localhost:3100/Auditee/test", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      alert("File uploaded successfully");
-      setFile(null);
-      setSelectedAuditees({}); // Reset state setelah upload
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Failed to upload file");
-    }
-  };
-
+  // const handleUpload1 = async () => {
+  //   const selectedFile = Object.values(selectedAuditees).find(
+  //     (file) => file !== null
+  //   );
+  
+  //   if (!selectedFile) {
+  //     alert("Please select a file to upload");
+  //     return;
+  //   }
+  
+  //   const formData = new FormData();
+  //   formData.append("file", selectedFile.file); // Pastikan menggunakan data file, bukan file_path
+  
+  //   try {
+  //     await axios.post("http://localhost:3100/Auditee/search-file", formData, {
+  //       headers: {
+  //         "Content-Type": "multipart/form-data",
+  //       },
+  //     });
+  //     alert("File uploaded successfully");
+  //     setFile(null);
+  //     setSelectedAuditees({});
+  //   } catch (error) {
+  //     console.error("Error uploading file:", error);
+  //     alert("Failed to upload file");
+  //   }
+  // };
+  
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
@@ -239,7 +235,7 @@ const UploadFileAuditee = () => {
       {/* Modal untuk "Search File" */}
       <Modal
         isOpen={isModalSearch}
-        onRequestClose={() => setIsModalSearch(false)}
+        onRequestClose={closeModal}
         contentLabel="Search File Modal"
         className="user-modal"
         overlayClassName="user-modal-overlay"
@@ -252,31 +248,36 @@ const UploadFileAuditee = () => {
               <tr>
                 <th>No</th>
                 <th>Select</th>
-                {/* Tambahkan kolom Select */}
                 <th>File Path</th>
                 <th>Description</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((item, index) => (
-                <tr key={item.id}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={!!selectedAuditees[item.id]} // Mengecek apakah file sudah dipilih
-                      onChange={() => handleCheckboxChange(item)} // Handle perubahan checkbox
-                    />
-                  </td>
-                  <td>{item.file_path}</td>
-                  <td>{item.description}</td>
-                </tr>
-              ))}
+                {filteredData.length > 0 ? (
+                  filteredData.map((item) => (
+                    <tr key={item.i_audevdfile}>
+                      <td>{item.i_audevdfile}</td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={!!selectedAuditees[item.i_audevdfile]}
+                          onChange={() => handleCheckboxChange(item)}
+                        />
+                      </td>
+                      <td>{item.n_audevdfile_file}</td>
+                      <td>{item.e_audevdfile_desc}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No data available</td>
+                  </tr>
+                )}            
             </tbody>
           </table>
-          <button onClick={handleUpload1}>Upload File</button>
+          <button>Upload File</button>
         </div>
-      </Modal>
+      </Modal> 
     </div>
   );
 };
