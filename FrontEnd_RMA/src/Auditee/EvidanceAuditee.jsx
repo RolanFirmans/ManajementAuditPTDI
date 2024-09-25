@@ -455,7 +455,7 @@ const fetchRemarks = async (key) => {
 
       
 
-      {/* Upload New File Excel */}
+      {/* Upload New File Auditee */}
 
       <Modal
         isOpen={isModalUpload}

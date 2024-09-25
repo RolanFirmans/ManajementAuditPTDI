@@ -22,6 +22,7 @@
     "node-postgres": "^0.6.2",
     "nodemon": "^3.1.4",
     "pg": "^8.12.0",
+    "sweetalert2": "^11.14.0",
     "xlsx": "^0.18.5"
   },
   "description": ""

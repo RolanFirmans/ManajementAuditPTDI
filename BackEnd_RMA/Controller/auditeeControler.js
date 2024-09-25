@@ -168,7 +168,7 @@ const UploadFileTitleItem = async (req, res) => {
 
 const GetSearchFile = async (req, res) => {
   const postgres = `
-  SELECT * FROM AUDIT.TMAUDEVDFILE`;
+  SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc FROM AUDIT.TMAUDEVDFILE`;
 
   pool.query(postgres, (error, result) => {
     if (error) {
@@ -822,15 +822,15 @@ const UploadNewFileAuditee = async (req, res) => {
 //   }};
 
 
-// const getTest = async (req, res) => {
-//   try {
-//     const result = await pool.query('SELECT * FROM files');
-//     res.status(200).json(result.rows);
-//   } catch (error) {
-//     console.error("Error fetching files:", error.stack);
-//     res.status(500).json({ message: "Error fetching files" });
-//   }
-// };
+const getTest = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM files');
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching files:", error.stack);
+    res.status(500).json({ message: "Error fetching files" });
+  }
+};
 
 
 
