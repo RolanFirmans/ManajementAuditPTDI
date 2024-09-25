@@ -305,7 +305,7 @@ const ParkerRussel = () => {
     <div className="data-user">
       <h2>Data User - Parker Russel</h2>
       <div className="filter-year-evidence">
-      <label>Filter Berdasarkan Tahun Penerbitan: </label>
+      <label>Year </label>
       <DatePicker
         selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
         onChange={handleYearChange}
@@ -314,9 +314,9 @@ const ParkerRussel = () => {
         placeholderText="Select year"
       />
     </div>
-    <div className="data-user-content">
-      <table>
-        <thead>
+    <div className="evidence-table">
+      <table className="table  table-striped">
+        <thead class=" table-spi table-dark">
           <tr>
             <th>No</th>
             <th>Data and Document Needed</th>

@@ -239,7 +239,7 @@ const DGCA = () => {
     <div className="data-user">
       <h2>Data User - DGCA</h2>
       <div className="filter-year-evidence">
-        <label>Filter Berdasarkan Tahun Penerbitan: </label>
+        <label>Year: </label>
         <DatePicker
           selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
           onChange={handleYearChange}
@@ -248,23 +248,23 @@ const DGCA = () => {
           placeholderText="Select year"
         />
       </div>
-      <div className="data-user-content">
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Data and Document Needed</th>
-              <th>Phase</th>
-              <th>Status</th>
-              <th>Deadline</th>
-              <th>Remarks by Auditee</th>
-              <th>Remarks by Auditor</th>
-              <th>Auditee</th>
-              <th>Auditor</th>
-              <th>Status Complete</th>
-              <th>Action</th>
-            </tr>
-          </thead>
+      <div className="evidence-table">
+        <table className="table  table-striped">
+        <thead class=" table-spi table-dark">
+          <tr>
+            <th>No</th>
+            <th>Data and Document Needed</th>
+            <th>Phase</th>
+            <th>Status</th>
+            <th>Deadline</th>
+            <th>Remarks by Auditee</th>
+            <th>Remarks by Auditor</th>
+            <th>Auditee</th>
+            <th>Auditor</th>
+            <th>Status Complete</th>
+            <th>Action</th>
+          </tr>
+        </thead>
           <tbody>
             {orders.map((order) => (
               <tr key={order.no}>

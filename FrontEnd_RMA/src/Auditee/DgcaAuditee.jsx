@@ -108,9 +108,9 @@ const DGCA = () => {
   return (
     <div className="data-user">
       <h2>Data User - DGCA</h2>
-      <div className="data-user-content">
-        <table>
-          <thead>
+      <div className="evidence-table">
+        <table className="table  table-striped">
+          <thead class=" table-spi table-dark">
             <tr>
               <th>No</th>
               <th>Data and Document Needed</th>

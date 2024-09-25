@@ -22,7 +22,7 @@ router.get('/karyawan', getKaryawan);
 // Definisikan route untuk menambahkan karyawan
 router.post('/add-karyawan', createDataKaryawan);
 // Definisikan route untuk delete karyawan
-router.delete('/delete-karyawan/:i_audusr', deleteKaryawan);
+router.delete('/delete-karyawan/:nik', deleteKaryawan);
 // Definisikan route untuk update karyawan
 router.put('/update-karyawan/:nik', updateKaryawan); 
 

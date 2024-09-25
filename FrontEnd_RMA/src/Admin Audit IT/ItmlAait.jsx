@@ -312,9 +312,9 @@ const ITML = () => {
         placeholderText="Select year"
       />
     </div>
-    <div className="data-user-content">
-      <table>
-        <thead>
+    <div className="evidence-table">
+      <table className="table  table-striped">
+        <thead class=" table-spi table-dark">
           <tr>
             <th>No</th>
             <th>Data and Document Needed</th>

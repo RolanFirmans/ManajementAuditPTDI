@@ -4,6 +4,7 @@
     import DatePicker from "react-datepicker";
     import "react-datepicker/dist/react-datepicker.css";
     import Swal from 'sweetalert2';
+    import { CloudDownloadOutlined } from "@ant-design/icons";
 
     const UploadFileExcelSpi = () => {
       const [file, setFile] = useState(null);
@@ -115,10 +116,10 @@
       };
 
       return (
-        <div>
-          <header>
-            <h3>Import Data Stock</h3>
-          </header>
+        <div className="dashboard">
+      
+            <h2>UPLOAD FILE EXCEL</h2>
+        <div className="dashboard-content" >
           <form 
             id="FormExcelDoc"
             onSubmit={handleSubmit}
@@ -133,26 +134,15 @@
                 )}
               </div>
             </div>
-            <fieldset className="label_side" id="facnumber">
-              <label>Template File Excel</label>
+            <fieldset className="label_side_d" id="facnumber">
               <div className="clearfix">
-                <a className="btn btn-success" href="http://localhost:3100/SPI/TemplateFileExcel">
+                <a className="btnTe" href="http://localhost:3100/SPI/TemplateFileExcel">
                   Download Template
                 </a>
               </div>
             </fieldset>
             <fieldset className="label_side" id="facnumber">
-          <label>Select Year</label>
-          <div className="clearfix">
-            <DatePicker
-              selected={selectedDate}
-              onChange={(date) => setSelectedDate(date)}
-              dateFormat="yyyy"
-              showYearPicker
-              className="form-control"
-              placeholderText="Pilih Tahun"
-            />
-          </div>
+        
         </fieldset>
             <fieldset
               className="label_side"
@@ -161,12 +151,12 @@
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               style={{
-                border: dragOver ? "2px dashed #4CAF50" : "2px dashed #ddd",
-                padding: "20px",
+                border: dragOver ? "d2px dashed #4CAF50" : "2px dashed #dd",
+                padding: "40px",
                 textAlign: "center",
               }}
             >
-              <label>Upload File</label>
+            
               <div className="clearfix">
                 <div className="input-group margin" style={{ width: "50%" }}>
                   <input
@@ -178,29 +168,37 @@
                     style={{ display: "none" }}
                   />
                   <div
+                  className="drag"
                     onClick={() => document.getElementById("file").click()}
-                    style={{
-                      cursor: "pointer",
-                      padding: "10px",
-                      borderRadius: "5px",
-                      backgroundColor: "#f1f1f1",
-                    }}
+                    
                   >
-                    {file ? file.name : "Drag & Drop file di sini atau Klik untuk memilih"}
+                    {file ? file.name : <CloudDownloadOutlined style={{fontSize: '90px' }} />} 
                   </div>
                   <span className="input-group-btn">
                     <input
                       type="submit"
-                      className="btn btn-info"
+                      className="btn_upload"
                       value="Upload"
                       title="Upload File Excel Stock"
                     />
                   </span>
                 </div>
-                <i>Format .XLS atau .XLSX (Excel)</i>
+                <i className="fm">Format .XLS atau .XLSX (Excel)</i>
               </div>
             </fieldset>
           </form>
+          
+          <div className="filter-year-SPI">
+          <label>Select Year: </label>
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date) => setSelectedDate(date)}
+              dateFormat="yyyy"
+              showYearPicker
+              placeholderText="Pilih Tahun"
+            />
+          </div>
+        </div>
         </div>
       );
     };

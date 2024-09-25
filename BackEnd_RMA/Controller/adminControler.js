@@ -106,57 +106,46 @@ const getKaryawan = async (req, res) => {
 
 // Endpoint DELETE untuk DELETE datana
 const deleteKaryawan = async (req, res) => {
-  const i_audusr = req.params.id;
-  console.log('Terima delete berdasarkan i_audusr:', i_audusr);
+  const nik = req.params.nik;
+  console.log('Received delete request for NIK:', nik);
 
-  if (!i_audusr) {
-    return res.status(400).json({ error: 'i_audusr tidak valid' });
+  if (!nik) {
+    return res.status(400).json({ error: 'NIK tidak valid' });
   }
 
-  const query = 'DELETE FROM AUDIT.TMAUDUSR WHERE i_audusr = $1 RETURNING *';
+  const query = 'DELETE FROM AUDIT.TMAUDUSR WHERE n_audusr_usrnm = $1 RETURNING *';
 
   try {
-    const result = await pool.query(query, [i_audusr]);
+    const result = await pool.query(query, [nik]);
     
-
-  const id = req.params.id;
-  console.log("Terima delete berdasarkan i_audusr:", id);
-
-  if (!id) {
-    return res.status(400).json({ error: "i_audusr tidak valid" });
-  }
-
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Data karyawan tidak ditemukan" });
+      return res.status(404).json({ message: 'Data karyawan tidak ditemukan' });
     }
 
     const deletedKaryawan = result.rows[0];
-    res.status(200).json({
-      message: "Data karyawan berhasil dihapus",
-      data: deletedKaryawan,
+    res.status(200).json({ 
+      message: 'Data karyawan berhasil dihapus',
+      data: deletedKaryawan
     });
   } catch (error) {
-    console.error("Error saat menghapus karyawan:", error);
-    res
-      .status(500)
-      .json({ error: "Terjadi kesalahan saat menghapus data karyawan" });
+    console.error('Error saat menghapus karyawan:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan saat menghapus data karyawan' });
   }
 };
 
 // Endpoint PUT untuk UPDATE data masih error
 const updateKaryawan = async (req, res) => {
-  const { key1 } = req.params; // N_AUDUSR_USRNM
-  const { c_audusr_role, N_AUDUSR, c_audusr_audr } = req.body;
+
+  const {n_audusr_usrnm, c_audusr_role, N_AUDUSR } = req.body;
 
   console.log("Data yang diterima untuk update:", {
-    key1,
+    n_audusr_usrnm,
     c_audusr_role,
     N_AUDUSR,
-    c_audusr_audr,
   });
 
   // Validasi field yang kosong
-  if (!key1 || !c_audusr_role || !N_AUDUSR) {
+  if (!n_audusr_usrnm || !c_audusr_role || !N_AUDUSR) {
     return res.status(400).json({ error: "Semua field harus diisi" });
   }
 
@@ -173,31 +162,13 @@ const updateKaryawan = async (req, res) => {
       throw new Error(`Role tidak valid: ${c_audusr_role}`);
     }
 
-    let updateQuery, queryParams;
-
-    // Logika untuk update berdasarkan role
-    if (roleInt <= 3) {
-      // Jika role <= 3, ambil data dari tabel `karyawan`
-      updateQuery = `
-        UPDATE AUDIT.TMAUDUSR SET 
-          N_AUDUSR = (SELECT nama FROM karywan WHERE nik = $1),
-          C_AUDUSR_ROLE = $2,
-          C_AUDUSR_AUDR = (SELECT organisasi FROM karyawan WHERE nik = $1),
-          I_AUDUSR_EMAIL = $3
-        WHERE N_AUDUSR_USRNM = $1
-      `;
-      queryParams = [key1, roleInt, i_audusr_email];
-    } else {
-      // Jika role > 3, update langsung dari input
-      updateQuery = `
-        UPDATE AUDIT.TMAUDUSR SET 
-          N_AUDUSR = $1,
-          C_AUDUSR_ROLE = $2,
-          C_AUDUSR_AUDR = $3
-        WHERE N_AUDUSR_USRNM = $5
-      `;
-      queryParams = [N_AUDUSR, roleInt, c_audusr_audr, key1];
-    }
+    const updateQuery = `
+      UPDATE AUDIT.TMAUDUSR SET 
+        N_AUDUSR = $1,
+        C_AUDUSR_ROLE = $2
+      WHERE N_AUDUSR_USRNM = $3
+    `;
+    const queryParams = [N_AUDUSR, roleInt, n_audusr_usrnm];
 
     // Eksekusi query
     const result = await client.query(updateQuery, queryParams);

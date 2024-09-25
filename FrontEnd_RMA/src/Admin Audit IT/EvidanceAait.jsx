@@ -347,7 +347,7 @@ const handlePageChange = (pageNumber) => {
     <div className="evidence-content">
       <h2>Data Evidence</h2>
       <div className="filter-year-evidence">
-        <label>Filter Berdasarkan Tahun Penerbitan: </label>
+        <label>Year: </label>
         <DatePicker
           selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
           onChange={handleYearChange}
@@ -357,8 +357,8 @@ const handlePageChange = (pageNumber) => {
         />
       </div>  
       <div className="evidence-table">
-        <table>
-          <thead>
+        <table className="table  table-striped">
+          <thead class=" table-spi table-dark">
             <tr>
               <th>No</th>
               <th>Data and Document Needed</th>
@@ -398,8 +398,8 @@ const handlePageChange = (pageNumber) => {
                         {order.statusComplete.text}
                       </td>
                       <td>
-                        <button onClick={() => handleEditUser(order)}>Edit</button>
-                        <button onClick={() => handleDeleteUser(order)}>Delete</button>
+                      <i className="bi-pencil-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer', marginRight: '10px' }} onClick={() => handleEditUser(order)}></i>
+                      <i className="bi-trash" style={{ color: 'black', fontSize: '20px', cursor: 'pointer' }} onClick={() => handleDeleteUser(order.NIK)}></i>
                         {order.statusComplete.backgroundColor === "orange" && (
                         <button onClick={() => handleUpdateStatus(order)}>Update Status</button>
                         )}

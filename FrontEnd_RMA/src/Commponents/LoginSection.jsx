@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Modal from "react-modal";
 import ImgLogin from "../Asset/ImgLogin.jpg";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
+import Swal from 'sweetalert2';
+import { AuthContext } from "./AuthContext"; // Asumsikan Anda memiliki AuthContext
 
 Modal.setAppElement("#root");
 
@@ -10,6 +12,7 @@ export default function LoginSection() {
   const [modalIsOpen, setModalIsOpen] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext); // Gunakan context untuk mengatur status autentikasi
 
   const [nik, setNik] = useState("");
   const [confirmNik, setConfirmNik] = useState("");
@@ -36,30 +39,53 @@ export default function LoginSection() {
 
       // Simpan token di localStorage
       localStorage.setItem('token', data.token);
+    
+      // Panggil fungsi login dari AuthContext
+      login();
 
       // Arahkan pengguna berdasarkan peran
       switch (data.user.role) {
         case 1:
-          alert("Welcome, Admin!");
-          navigate("../Admin");
+          Swal.fire({
+            title: "Good job!",
+            text: "Welcome, Admin!",
+            icon: "success"
+          });
+          navigate("/Admin");
           break;
         case 2:
-          alert("Welcome, Auditee!");
-          navigate("../Auditee");
+          Swal.fire({
+            title: "Good job!",
+            text: "Welcome, Auditee!",
+            icon: "success"
+          });
+          navigate("/Auditee");
           break;
         case 3:
-          alert("Welcome, SPI!");
-          navigate("../Spi");
+          Swal.fire({
+            title: "Good job!",
+            text: "Welcome, SPI!",
+            icon: "success"
+          });
+          navigate("/Spi");
           break;
         case 4:
-          alert("Welcome, Admin Audit IT!");
-          navigate("../AdminAuditIt");
+          Swal.fire({
+            title: "Good job!",
+            text: "Welcome, Admin Audit IT!",
+            icon: "success"
+          });
+          navigate("/AdminAuditIt");
           break;
         default:
-          alert("Welcome!");
-          navigate("../Dashboard");
+          Swal.fire({
+            title: "Welcome!",
+            text: "You've successfully logged in.",
+            icon: "success"
+          });
+          navigate("/Dashboard");
       }
-
+      
       closeModal();
     } catch (error) {
       console.error('Login error:', error);

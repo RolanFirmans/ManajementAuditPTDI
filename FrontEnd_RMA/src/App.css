@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: Arial;
 }
 
 
@@ -340,40 +341,6 @@
 /* END Global Admin, SPI, Auditee, Auditor */
 
 /* START ADMIN  */
-/* .SideNav{
-  display: flex;
-  background-color: #001f6d;
-  background-repeat: no-repeat;
-}
-
-.SideNav img{
-  width: 100px;
-  margin-left: 50px;
-  margin-top: 20px;
-}
-
-.SideNav-text{
-  font-weight: bold;
-  display: fixed;
-  font-size: 30px;
-  color: #fff;
-  text-align: left;
-  margin-left: 30px;
-  margin-top: 40px;
-}
-
-.dashboard {
-  padding: 20px;
-  margin-top: 20px;
-  margin-left: 0px;
-  color: black;
-}
-
-.dashboard-content {
-  background-color: #f0f0f0;
-  height: 500px;
-  border-radius: 20px;
-} */
 
 .admin-section {
   display: flex;
@@ -411,7 +378,6 @@
 .hamburger {
   background: none;
   border: none;
-  color: white;
   font-size: 24px;
   cursor: pointer;
   margin-left: -60%;
@@ -488,7 +454,11 @@
 }
 
 .dashboard {
+  margin-left: -170px;
   margin-top: 20px;
+}
+.dashboard h2{
+  font-weight: 650;
 }
 
 .dashboard-content {
@@ -498,32 +468,36 @@
   border-radius: 20px;
 }
 
-.data-user {
-  margin: 20px;
+.data-user h2{
+  margin-left: -170px;
+  font-weight: 650;
   font-family: Arial, sans-serif;
 }
 
 .data-user-content {
+  margin-left: -170px;
   margin-top: 10px;
 }
 
-table {
+
+.table {
+  background-color: #001f6d;
   width: 100%;
   border-collapse: collapse;
 }
 
-th,
-td {
+.th,
+.td {
   border: 1px solid #ddd;
   padding: 8px;
 }
 
-th {
+.th {
   background-color: #f2f2f2;
   text-align: left;
 }
 
-button {
+.button {
   margin: 0 5px;
   padding: 5px 10px;
   cursor: pointer;
@@ -533,11 +507,12 @@ button {
   width: 100px;
   height: 30px;
   margin-top: -40px;
-  margin-left: 85%;
+  margin-left: 88%;
   border-radius: 9px;
   background-color: #001f6d;
   color: #ddd;
 }
+
 .data-user {
   margin: 20px;
   font-family: Arial, sans-serif;
@@ -546,8 +521,12 @@ button {
 .data-user-content {
   margin-top: 10px;
 }
+.tab{
+  background-color: #001f6d;
+}
 
-table {
+
+/* table {
   width: 100%;
   border-collapse: collapse;
 }
@@ -567,15 +546,15 @@ button {
   margin: 0 5px;
   padding: 5px 10px;
   cursor: pointer;
-}
+} */
 
 .add-user-button {
   margin-bottom: 10px;
 }
 
 .user-modal {
-  position: absolute;
-  top: 60%;
+  position: relative;
+  top: 50%;
   left: 50%;
   right: auto;
   bottom: auto;
@@ -588,9 +567,13 @@ button {
 }
 
 .user-modal-overlay {
-  background-color: rgba(0, 0, 0, 0.75);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
 }
-
 .modal-content {
   display: flex;
   flex-direction: column;
@@ -658,6 +641,27 @@ button {
   background-color: rgba(0, 0, 0, 0.75);
 }
 /* END ADMIN */
+
+/* START EVIDENCE */
+.evidence-content h2{
+  margin-left: -170px;
+  font-weight: 650;
+  font-family: Arial, sans-serif;
+}
+.filter-year-evidence{
+  margin-left: -170px;
+}
+
+.evidence-table {
+  margin-left: -170px;
+  margin-top: 10px;
+}
+.table-spi th{
+  font-size:14px;
+  text-align: justify;
+}
+
+/* END EVIDENCE */
 
 /* START ADMIN AUDIT IT  */
 
@@ -943,12 +947,18 @@ button {
   font-size: 14px;
   margin-bottom: -50px;
 }
+
+/* entries admin */
+
+/* end entries admin */
+
+
 .search-input {
   width: 20%;
   margin-left: 80%;
-  padding: 10px;
+  padding: 4px;
   margin-bottom: 20px;
-  border-radius: 4px;
+  border-radius: 6px;
   border: 1px solid #ccc;
 }
 
@@ -957,6 +967,7 @@ button {
   justify-content: center;
   margin-top: 20px;
 }
+
 .pagination button {
   background-color: #fff;
   border: 1px solid #ddd;
@@ -978,6 +989,18 @@ button {
   color: #ccc;
   cursor: not-allowed;
 }
+
+/* Pagnation-admin */
+.pagination-admin {
+  display: flex;
+  gap: 90px;
+  justify-content: center;
+  margin-left: -120px;
+  margin-top: 20px;
+}
+
+/* pagnation-admin */
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -996,3 +1019,83 @@ button {
 .select-btn:hover {
   background-color: #45a049;
 }
+
+/* Button Log Out  */
+.user-info {
+  position: relative;
+  display: inline-block;
+}
+
+/* end */
+
+/* Start Side bar */
+.menu-bar{
+  height: 88vh;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  font-size: 1.1rem;
+  background-color: #2d2d4d;
+
+}
+/* End Side bar  */
+
+
+/* UPLOAD EXCEL */
+.btn{
+  margin-left: 400px;
+}
+.label_side{
+  background-color: #ffffff;
+  margin-left: 300px;
+  width: 500px;
+  border-radius: 30px;
+}
+.drag{
+  display: flex;
+  position: relative;
+  padding-left: 180px;
+  cursor: pointer;
+}
+
+.btnTe{
+  font-size: 20px;
+  padding: 10px;
+  margin-left: 470px;
+  border-radius: 9px;
+  background-color: #2d2d4d;
+  color: #ddd;
+}
+
+.btn_upload{
+  font-size: 14px;
+  padding: 5px;
+  margin-left: 196px;
+  border-radius: 9px;
+  background-color: #2d2d4d;
+  color: #ddd;
+}
+
+.fm{
+  margin-left: 40px;
+}
+
+.form-control{
+  margin-left: 300px;
+  height: 10%;
+  width: 50%;
+  color: #ddd;
+  padding: 40px;
+
+}
+
+.form-control-datepicker{
+  height: 20px;
+  margin-left: 300px;
+}
+.filter-year-SPI{
+  padding: 20px;
+  margin-left: 400px;
+}
+
+/* END UPLOAD EXCEL */

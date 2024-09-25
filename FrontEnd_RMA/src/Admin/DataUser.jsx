@@ -2,17 +2,35 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import DataKaryawan from './DataKaryawan'; // Import DataKaryawan component
 import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Swal from 'sweetalert2';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import { Pagination } from 'antd';
+
 
 Modal.setAppElement('#root');
 
 const DataUser = () => {
   const [orders, setOrders] = useState([]);
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [isKaryawanModalOpen, setIsKaryawanModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [filterOrganisasi, setFilterOrganisasi] = useState('');
+  const [isKaryawanModalOpen, setIsKaryawanModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+
+  const [newUser, setNewUser] = useState({
+    No: '',
+    NIK: '',
+    Name: '',
+    Role: '',
+    Organization: '',
+    Email: '',
+  });
+
   const getRoleValue = (roleLabel) => {
     switch (roleLabel) {
       case 'ADMIN': return 1;
@@ -32,53 +50,84 @@ const DataUser = () => {
     }
   };
 
-  const [newUser, setNewUser] = useState({
-    No: '',
-    NIK: '',
-    Name: '',
-    Role: '',
-    Organization: '',
-    Email: '',
+  // Fungsi untuk memfilter data berdasarkan pencarian
+  const filteredData = orders.filter((order) => {
+    const matchesFilter = filterOrganisasi
+      ? order.Organization &&
+        order.Organization
+          .toLowerCase()
+          .startsWith(filterOrganisasi.toLowerCase())
+      : true;
+    const matchesSearch =
+      (order.NIK &&
+        order.NIK.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (order.Name &&
+        order.Name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (order.Organization &&
+        order.Organization.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return matchesFilter && matchesSearch;
   });
 
+  console.log("Data yang difilter:", filteredData);
+
+  // Logika paginasi
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
 
   
+
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/Admin/karyawan`);
+      const mappedUsers = response.data.payload
+        .map((item, index) => ({
+          ...item,
+          sortOrder: index, // Tambahkan field untuk pengurutan
+          No: item.i_audusr,
+          NIK: item.n_audusr_usrnm,
+          Name: item.n_audusr,
+          Role: getRoleLabel(item.role),
+          Organization: item.organisasi,
+        }))
+        .sort((a, b) => a.No - b.No); // Urutkan berdasarkan No
+      setOrders(mappedUsers);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error(`Gagal mengambil data karyawan: ${error.message}`);
+      setOrders([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   const fetchKaryawan = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Admin/karyawan`);
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
-      }
-      const result = await response.json();
-  
-      if (result.payload === 'Data tidak ditemukan') {
-        console.warn('Data karyawan tidak ditemukan');
-        setOrders([]);
-        return;
-      }
-      
-      if (!Array.isArray(result.payload)) {
-        throw new Error('Data yang diterima bukan array');
-      }
-
-      const mappedKaryawan = result.payload.map((item) => ({
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/Admin/karyawan`);
+      const mappedUsers = response.data.payload.map((item) => ({
         No: item.i_audusr,
         NIK: item.n_audusr_usrnm,
         Name: item.n_audusr,
         Role: getRoleLabel(item.role),
         Organization: item.organisasi,
       }));
-  
-      console.log('Mapped Karyawan:', mappedKaryawan);
-      setOrders(mappedKaryawan);
+      setOrders(mappedUsers);
     } catch (error) {
-      console.error('Error fetching data:', error.message);
+      console.error('Error fetching data:', error);
       toast.error(`Gagal mengambil data karyawan: ${error.message}`);
       setOrders([]);
     }
   };
-  
   useEffect(() => {
     fetchKaryawan();
   }, []);
@@ -96,13 +145,11 @@ const DataUser = () => {
         key2: roleValue,
       };
   
-      console.log('Data yang dikirim:', bodyData);
+      console.log('Data yang dikirim untuk penambahan:', bodyData);
   
       const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Admin/add-karyawan`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyData),
       });
   
@@ -112,24 +159,24 @@ const DataUser = () => {
       }
   
       const responseData = await response.json();
-      console.log('Data respon:', responseData);
+      console.log('Data respon penambahan:', responseData);
   
       Swal.fire({
-        title: "Good job!",
-        text: "Data berhasil di Upload",
+        title: "Berhasil!",
+        text: "Data berhasil ditambahkan",
         icon: "success"
       });
 
-      setIsAddUserModalOpen(false);
-      fetchKaryawan(); // Refresh daftar karyawan
+      setIsUserModalOpen(false);
+      fetchKaryawan();
   
     } catch (error) {
       console.error('Error menambahkan pengguna:', error);
       Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Error Menambahkan Pengguna!",
-        });
+        icon: "error",
+        title: "Oops...",
+        text: "Error Menambahkan Pengguna!",
+      });
     }
   };
 
@@ -159,46 +206,64 @@ const DataUser = () => {
   const handleUpdateUser = async () => {
     try {
       const roleValue = getRoleValue(newUser.Role);
-      
       if (roleValue === null) {
         throw new Error('Peran yang dipilih tidak valid');
       }
-
+  
       const bodyData = {
-        key1: newUser.NIK,
+        n_audusr_usrnm: newUser.NIK,
         c_audusr_role: roleValue.toString(),
-        n_audusr_nm: newUser.Name,
+        N_AUDUSR: newUser.Name.trim()
       };
-
-      console.log('Data yang akan dikirim:', bodyData);
-
-      const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Admin/update-karyawan/${newUser.NIK}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(bodyData),
+  
+      console.log('Data yang akan dikirim untuk update:', bodyData);
+  
+      const response = await axios.put(
+        `${import.meta.env.VITE_HELP_DESK}/Admin/update-karyawan/${newUser.NIK}`,
+        bodyData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+  
+     
+    if (response.status === 200) {
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.NIK === newUser.NIK 
+            ? { ...order, ...newUser, Role: getRoleLabel(roleValue) } 
+            : order
+        ).sort((a, b) => a.No - b.No) // Urutkan kembali berdasarkan No
+      );
+      console.log('Hasil update:', response.data);
+  
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Data berhasil diperbarui",
+        icon: "success"
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Terjadi kesalahan saat memperbarui pengguna');
-      }
-
-      const result = await response.json();
-      console.log('Hasil update:', result);
-
-      toast.success('Pengguna berhasil diperbarui');
-      setIsAddUserModalOpen(false);
-      setNewUser({ No: '', NIK: '', Name: '', Role: '', Organization: '' }); // Reset newUser
-      fetchKaryawan(); // Refresh daftar karyawan setelah update
-      setIsEditing(false); // Reset flag isEditing setelah update
-
+  
+      setIsUserModalOpen(false);
+      setNewUser({ No: '', NIK: '', Name: '', Role: '', Organization: '' });
+      setIsEditing(false);
+    } else {
+      throw new Error(response.data.error || 'Terjadi kesalahan saat memperbarui pengguna');
+    }
+  
     } catch (error) {
       console.error('Error memperbarui pengguna:', error);
-      toast.error(`Error memperbarui pengguna: ${error.message}`);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: `Error memperbarui pengguna: ${error.response?.data?.error || error.message}`,
+      });
     }
   };
+
+
+
   const handleSaveUser = () => {
     if (isEditing) {
       handleUpdateUser();
@@ -208,48 +273,56 @@ const DataUser = () => {
   };
 
   const handleEditUser = (user) => {
-    console.log("Edit user data:", user); // Untuk debugging
+    console.log("Edit user data:", user);
     setNewUser({
       NIK: user.NIK,
       Name: user.Name,
       Role: user.Role,
       Organization: user.Organization
     });
-    setIsAddUserModalOpen(true);
+    setIsEditing(true);
+    setIsUserModalOpen(true);
   };
 
-
-// Fungsi untuk menghapus user
-const handleDeleteUser = async (i_audusr) => {
-  console.log('Menghapus Pengguna dengan i_audusr:', i_audusr);
-  if (!i_audusr) {
-    toast.error('i_audusr karyawan tidak valid');
-    return;
-  }
-
-  // Menampilkan konfirmasi SweetAlert sebelum penghapusan
-  Swal.fire({
-    title: "Apakah Anda yakin?",
-    text: "Anda tidak bisa mengembalikan data ini setelah dihapus!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Ya, hapus!"
-  }).then(async (result) => {
+  const handleDeleteUser = async (NIK) => {
+    console.log('Attempting to delete user with NIK:', NIK);
+    if (!NIK) {
+      toast.error('NIK karyawan tidak valid');
+      return;
+    }
+  
+    // Setup SweetAlert with custom Bootstrap buttons
+    const swalWithBootstrapButtons = Swal.mixin({
+      customClass: {
+        confirmButton: "btn btn-success",
+        cancelButton: "btn btn-danger"
+      },
+      buttonsStyling: false
+    });
+  
+    const result = await swalWithBootstrapButtons.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true
+    });
+  
     if (result.isConfirmed) {
       try {
-        const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Admin/delete-karyawan/${i_audusr}`);
+        const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Admin/delete-karyawan/${NIK}`);
         
         if (response.status === 200) {
           console.log('User berhasil dihapus:', response.data);
-          setOrders(prevOrders => prevOrders.filter(order => order.i_audusr !== i_audusr));
+          setOrders(prevOrders => prevOrders.filter(order => order.NIK !== NIK));
           toast.success('User berhasil dihapus');
-          
-          // Menampilkan pesan sukses dengan SweetAlert
-          Swal.fire({
-            title: "Dihapus!",
-            text: "User berhasil dihapus.",
+  
+          // Menampilkan SweetAlert bahwa penghapusan berhasil
+          swalWithBootstrapButtons.fire({
+            title: "Deleted!",
+            text: "User telah berhasil dihapus.",
             icon: "success"
           });
         } else {
@@ -259,13 +332,22 @@ const handleDeleteUser = async (i_audusr) => {
         console.error('Error saat menghapus user:', error);
         toast.error(`Gagal menghapus user: ${error.response?.data?.message || error.message}`);
       }
+    } else if (result.dismiss === Swal.DismissReason.cancel) {
+      // Menampilkan SweetAlert jika penghapusan dibatalkan
+      swalWithBootstrapButtons.fire({
+        title: "Cancelled",
+        text: "User tidak jadi dihapus.",
+        icon: "error"
+      });
     }
-  });
-};
+  };
+  
+  
+  
 
 // Panggil handleDeleteUser dengan ID yang sesuai
   const openKaryawanModal = () => {
-    setIsAddUserModalOpen(false);
+    setIsUserModalOpen(false);
     setIsKaryawanModalOpen(true);
   };
 
@@ -277,14 +359,8 @@ const handleDeleteUser = async (i_audusr) => {
       Organization: karyawan.organisasi,
     }));
     setIsKaryawanModalOpen(false);
-    setIsAddUserModalOpen(true); // Buka kembali modal Add User
+    setIsUserModalOpen(true);
   };  
-
-  useEffect(() => {
-    if (filterOrganisasi) {
-      setIsKaryawanModalOpen(true);
-    }
-  }, [filterOrganisasi]);
 
   return (
     <div className="data-user">
@@ -292,14 +368,30 @@ const handleDeleteUser = async (i_audusr) => {
       <div className="AddUser">
         <button
           className="add-user-button"
-          onClick={() => setIsAddUserModalOpen(true)}
+          onClick={() => {
+            setIsEditing(false);
+            setNewUser({ No: '', NIK: '', Name: '', Role: '', Organization: '' });
+            setIsUserModalOpen(true);
+          }}
         >
           Add User
         </button>
       </div>
+      <div className="search-container">
+      <input
+          type="text"
+          placeholder="Search..."
+          className="search-input"
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1); // Reset to first page when searching
+          }}
+        />
+      </div>
       <div className="data-user-content">
         <table className="table table-striped">
-          <thead>
+          <thead class="table-dark">
             <tr>
               <th>No</th>
               <th>NIK</th>
@@ -309,32 +401,47 @@ const handleDeleteUser = async (i_audusr) => {
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order.i_audusr}>
+          <tbody className="table-group-divider">
+            {currentItems.map((order) => (
+              <tr key={order.NIK}>
                 <td>{order.No}</td>
                 <td>{order.NIK}</td>
                 <td>{order.Name}</td>
                 <td>{order.Role}</td>
                 <td>{order.Organization}</td>
                 <td>
-                  <button onClick={() => handleDeleteUser(order.No)}>Delete</button>
-                  <button onClick={() => handleEditUser(order)}>Edit</button>
+                  <i className="bi-pencil-fill" style={{ color: 'black', fontSize: '25px', cursor: 'pointer', marginRight: '10px' }} onClick={() => handleEditUser(order)}></i>
+                  <i className="bi-trash" style={{ color: 'black', fontSize: '25px', cursor: 'pointer' }} onClick={() => handleDeleteUser(order.NIK)}></i>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {/* pagination */}
+      <div className="pagination-admin">
+      <Pagination
+          current={currentPage}
+          total={filteredData.length}
+          pageSize={itemsPerPage}
+          onChange={handlePageChange}
+          showSizeChanger={false}
+          showQuickJumper={false}
+        />
+      </div>
       {/* Add User Modal */}
       <Modal
-        isOpen={isAddUserModalOpen}
-        onRequestClose={() => setIsAddUserModalOpen(false)}
-        contentLabel="Add User Modal"
-        className="user-modal"
-        overlayClassName="user-modal-overlay"
-      >
-        <h3>{newUser.NIK ? 'Edit' : 'Add'} Data User</h3>
+      isOpen={isUserModalOpen}
+      onRequestClose={() => {
+        setIsUserModalOpen(false);
+        setIsEditing(false);
+        setNewUser({ No: '', NIK: '', Name: '', Role: '', Organization: '' });
+      }}
+      contentLabel="User Modal"
+      className="user-modal"
+      overlayClassName="user-modal-overlay"
+    >
+         <h3>{isEditing ? 'Edit' : 'Add'} Data User</h3>
         <div className="modal-content">
         <label>Role</label>
           <select
@@ -367,8 +474,8 @@ const handleDeleteUser = async (i_audusr) => {
             onChange={handleInputChange}
             className="modal-input"
           />
-          
-          {/* <label>Organization</label>
+{/*           
+          <label>Organization</label>
           <input
             type="text"
             name="Organization"
@@ -376,11 +483,16 @@ const handleDeleteUser = async (i_audusr) => {
             onChange={handleInputChange}
             className="modal-input"
           /> */}
+          
         </div>
         <div className="modal-actions">
-          <button onClick={() => setIsAddUserModalOpen(false)} className="modal-cancel">Cancel</button>
-          <button onClick={newUser.No ? handleUpdateUser : handleAddUser} className="modal-add">
-            {newUser.No ? 'Update' : 'Add'}
+          <button onClick={() => {
+            setIsUserModalOpen(false);
+            setIsEditing(false);
+            setNewUser({ No: '', NIK: '', Name: '', Role: '', Organization: '' });
+          }} className="modal-cancel">Cancel</button>
+          <button onClick={handleSaveUser} className="modal-add">
+            {isEditing ? 'Update' : 'Add'}
           </button>
         </div>
       </Modal>
@@ -398,7 +510,7 @@ const handleDeleteUser = async (i_audusr) => {
           <button onClick={() => setIsKaryawanModalOpen(false)} className="modal-close">&times;</button>
         </div>
         <DataKaryawan onSelectKaryawan={handleKaryawanSelect} filterOrganisasi={filterOrganisasi} />
-        </Modal>
+      </Modal>
       </div>
   );
 };

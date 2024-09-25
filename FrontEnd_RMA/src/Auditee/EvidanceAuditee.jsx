@@ -219,26 +219,12 @@ const EvidenceAuditee = () => {
     }
   };
   
-  const resetNewUser = () => {
-    setNewUser({
-      no: "",
-      dataAndDocumentNeeded: "",
-      phase: "",
-      status: "",
-      deadline: "",
-      remarksByAuditee: "",
-      remarksByAuditor: "",
-      auditee: "",
-      auditor: "",
-      statusComplete: "",
-      publishingYear: "",
-    });
-  };
 
   const handleYearChange = (date) => {
     const year = date ? getYear(date).toString() : "";
     setSelectedYear(year);
   };
+  
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
   const filteredOrders = selectedYear
   ? orders.filter((order) => order.publishingYear === selectedYear)
