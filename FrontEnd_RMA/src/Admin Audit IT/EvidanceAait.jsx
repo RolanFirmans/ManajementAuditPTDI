@@ -409,7 +409,7 @@ const handlePageChange = (pageNumber) => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="11">Tidak ada data untuk ditampilkan</td>
+                
                 </tr>
               )}
             </tbody>

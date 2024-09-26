@@ -383,7 +383,7 @@ const fetchRemarks = async (key) => {
     <div className="evidence-content">
       <h2>Data Evidence</h2>
       <div className="filter-year-evidence">
-        <label>Filter Berdasarkan Tahun Penerbitan: </label>
+        <label>Year: </label>
         <DatePicker
           selected={selectedYear ? new Date(`${selectedYear}-01-01`) : null}
           onChange={handleYearChange}
@@ -393,8 +393,8 @@ const fetchRemarks = async (key) => {
         />
       </div>
       <div className="evidence-table">
-        <table>
-          <thead>
+        <table className="table  table-striped">
+          <thead class=" table-spi table-dark">
             <tr>
               <th>No</th>
               <th>Data and Document Needed</th>
@@ -433,17 +433,19 @@ const fetchRemarks = async (key) => {
                     {order.statusComplete.text}
                   </td>
                   <td>
-                    <button onClick={() => handleUploadFile(order)}>Upload</button>
-                    <button onClick={() => handleEditUser(order)}>Edit</button>
-                    <button onClick={() => handleUpdateStatus(order)}>Status</button>
-                    <button onClick={() => handleKomentar(order)}>Komentar</button>
+                  
+                    <i className="bi-cloud-arrow-up-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer', marginRight: '10px' }} onClick={() => handleUploadFile(order)}></i>
+                    <i className="bi-pencil-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer', marginRight: '10px' }} onClick={() => handleEditUser(order)}></i>
+                    <i className="bi-clipboard2-check-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer', marginRight: '10px' }} onClick={() => handleUpdateStatus(order)}></i>
+
+                   
                   </td>
                 </tr>
               );
             })
           ) : (             
             <tr>
-                <td colSpan="11">Tidak ada data untuk ditampilkan</td>
+             
               </tr>
             )}
           </tbody>
@@ -451,9 +453,6 @@ const fetchRemarks = async (key) => {
       </div>
 
       {/* Upload File Excel */}
-
-
-      
 
       {/* Upload New File Auditee */}
 

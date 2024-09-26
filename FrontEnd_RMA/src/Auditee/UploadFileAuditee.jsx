@@ -13,78 +13,50 @@ const UploadFileAuditee = () => {
   const [files, setFiles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredData, setFilteredData] = useState([]);
-  const [selectedAuditees, setSelectedAuditees] = useState({});
+  const [selectedAuditee, setSelectedAuditee] = useState(null);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-
-  // useEffect(() => {
-  //   axios
-  //     .get("http://localhost:3100/Auditee/upload-file")
-  //     .then((response) => {
-  //       setPlaceholder(
-  //         response.data?.placeholder || "Exp: Backup & Restoration Management"
-  //       );
-  //     })
-  //     .catch((error) => {
-  //       console.error("There was an error fetching the data!", error);
-  //       setPlaceholder("Exp: Backup & Restoration Management");
-  //     });
-  // }, []);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3100/Auditee/search-file")
-      .then((response) => {
-        console.log('API Response:', response.data);
-        if (Array.isArray(response.data)) {
-          setData(response.data);
-          setFiles(response.data);
-        } else {
-          console.error('Expected array, got:', response.data);
-        }
-        setLoading(false);
-      })
-      .catch((error) => {
-        setError(error);
-        setLoading(false);
-      });
-  }, []);  
-  
-  // Filter data based on search query
-  useEffect(() => {
-    const filterData = () => {
-      if (!Array.isArray(data)) {
-        console.error('Data is not an array:', data);
-        return;
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get("http://localhost:3100/Auditee/search-file");
+      console.log('API Response:', response.data);
+      if (Array.isArray(response.data.data)) {
+        setData(response.data.data);
+        setFiles(response.data.data);
+      } else {
+        console.error('Expected array in response.data.data, got:', response.data);
+        setError('Data yang diterima tidak sesuai format yang diharapkan');
       }
-  
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      const result = data.filter(
-        (item) =>
-          item.i_audevdfile?.toLowerCase().includes(lowerCaseQuery) ||
-          item.n_audevdfile_file?.toLowerCase().includes(lowerCaseQuery) ||
-          item.e_audevdfile_desc?.toLowerCase().includes(lowerCaseQuery)
-      );
-      setFilteredData(result);
-    };
-  
-    filterData();
-  }, [searchQuery, data]);
-  
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Terjadi kesalahan saat mengambil data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!file) {
-      alert("Please select a file.");
+    if (!file && !selectedAuditee) {
+      alert("Silakan pilih file atau pilih file dari daftar pencarian.");
       return;
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    if (file) {
+      formData.append("file", file);
+    } else if (selectedAuditee) {
+      formData.append("file_path", selectedAuditee.n_audevdfile_file);
+    }
     formData.append("description", description);
 
     try {
@@ -97,16 +69,18 @@ const UploadFileAuditee = () => {
           },
         }
       );
-      alert("File uploaded successfully!");
+      alert("File berhasil diunggah!");
       setFile(null);
+      setSelectedAuditee(null);
       setDescription("");
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error("Error mengunggah file:", error);
     }
   };
 
   const handleCancel = () => {
     setFile(null);
+    setSelectedAuditee(null);
     setDescription("");
   };
 
@@ -114,89 +88,54 @@ const UploadFileAuditee = () => {
 
   const handleSearchFile = () => setIsModalSearch(true);
 
-  // const handleCheckboxChange = (userName) => {
-  //   setSelectedAuditees(prev => ({
-  //     ...prev,
-  //     [userName]: !prev[userName]
-  //   }));
-  // };
-
-  const openModal = () => setModalIsOpen(true);
-  const closeModal = () => setModalIsOpen(false);
-
   const handleCheckboxChange = (file) => {
-    setSelectedAuditees((prevSelected) => ({
-      ...prevSelected,
-      [file.i_audevdfile]: !prevSelected[file.i_audevdfile] ? file : null,
-    }));
+    setSelectedAuditee(file);
+    closeModal();
   };
 
-  // const handleUpload1 = async () => {
-  //   const selectedFile = Object.values(selectedAuditees).find(
-  //     (file) => file !== null
-  //   );
-  
-  //   if (!selectedFile) {
-  //     alert("Please select a file to upload");
-  //     return;
-  //   }
-  
-  //   const formData = new FormData();
-  //   formData.append("file", selectedFile.file); // Pastikan menggunakan data file, bukan file_path
-  
-  //   try {
-  //     await axios.post("http://localhost:3100/Auditee/search-file", formData, {
-  //       headers: {
-  //         "Content-Type": "multipart/form-data",
-  //       },
-  //     });
-  //     alert("File uploaded successfully");
-  //     setFile(null);
-  //     setSelectedAuditees({});
-  //   } catch (error) {
-  //     console.error("Error uploading file:", error);
-  //     alert("Failed to upload file");
-  //   }
-  // };
-  
-  if (loading) return <p>Loading...</p>;
+  const closeModal = () => {
+    setIsModalSearch(false);
+    setIsModalUpload(false);
+  };
+
+  if (loading) return <p>Memuat...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div className="upload-form">
       <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-        UPLOAD FILE EVIDENCE
+        UNGGAH FILE BUKTI
         <br />
-        DATA & DOCUMENT NEEDED
+        DATA & DOKUMEN YANG DIBUTUHKAN
       </h3>
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="title">Title:</label>
+        <div className="formAAuditee">
+          <label htmlFor="title">Judul:</label>
           <input
             type="text"
             id="title"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="form-control"
+            className="form-text"
             placeholder={placeholder}
           />
         </div>
         <div className="form-group">
-          <label htmlFor="file">Evidence:</label>
+          <label htmlFor="file">Bukti:</label>
           <div className="file-buttons">
             <button
               type="button"
-              className="btn btn-primary"
+              className="btnSearchAuditee"
               onClick={handleSearchFile}
             >
-              Search File
+              Cari File
             </button>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btnUploadAuditee"
               onClick={handleUploadFile}
             >
-              Upload New File
+              Unggah File Baru
             </button>
             <input
               type="file"
@@ -205,79 +144,78 @@ const UploadFileAuditee = () => {
               onChange={handleFileChange}
             />
           </div>
-          <div>{file ? file.name : "No file selected"}</div>
+          <div>
+            {file ? file.name : selectedAuditee ? selectedAuditee.n_audevdfile_file : "Tidak ada file yang dipilih"}
+          </div>
         </div>
         <div className="form-buttons">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btnCancelAuditee"
             onClick={handleCancel}
           >
-            Cancel
+            Batal
           </button>
-          <button type="submit" className="btn btn-success">
-            Save
+          <button type="submit" className="btnSaveAuditee">
+            Simpan
           </button>
         </div>
       </form>
 
-      {/* Modal untuk "Upload New File" */}
       <Modal
         isOpen={isModalUpload}
-        onRequestClose={() => setIsModalUpload(false)}
-        contentLabel="Upload New File Modal"
+        onRequestClose={closeModal}
+        contentLabel="Modal Unggah File Baru"
         className="user-modal"
         overlayClassName="user-modal-overlay"
       >
         <UploadNewFileAuditee />
       </Modal>
 
-      {/* Modal untuk "Search File" */}
       <Modal
         isOpen={isModalSearch}
         onRequestClose={closeModal}
-        contentLabel="Search File Modal"
+        contentLabel="Modal Pencarian File"
         className="user-modal"
         overlayClassName="user-modal-overlay"
       >
         <div>
-          <h1>Data List</h1>
-          <button onClick={closeModal}>Close</button>
-          <table>
-            <thead>
+          <h1>Daftar Data</h1>
+          <table className="table table-striped">
+            <thead className="table-dark">
               <tr>
                 <th>No</th>
-                <th>Select</th>
-                <th>File Path</th>
-                <th>Description</th>
+                <th>Pilih</th>
+                <th>Path File</th>
+                <th>Deskripsi</th>
               </tr>
             </thead>
             <tbody>
-                {filteredData.length > 0 ? (
-                  filteredData.map((item) => (
-                    <tr key={item.i_audevdfile}>
-                      <td>{item.i_audevdfile}</td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={!!selectedAuditees[item.i_audevdfile]}
-                          onChange={() => handleCheckboxChange(item)}
-                        />
-                      </td>
-                      <td>{item.n_audevdfile_file}</td>
-                      <td>{item.e_audevdfile_desc}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4">No data available</td>
+              {data.length > 0 ? (
+                data.map((item) => (
+                  <tr key={item.i_audevdfile}>
+                    <td>{item.i_audevdfile}</td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedAuditee && selectedAuditee.i_audevdfile === item.i_audevdfile}
+                        onChange={() => handleCheckboxChange(item)}
+                      />
+                    </td>
+                    <td>{item.n_audevdfile_file}</td>
+                    <td>{item.e_audevdfile_desc}</td>
                   </tr>
-                )}            
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4">Tidak ada data tersedia</td>
+                </tr>
+              )}            
             </tbody>
           </table>
-          <button>Upload File</button>
+          <button onClick={closeModal} className="CloseDataList">Batal</button>
         </div>
-      </Modal> 
+      </Modal>
     </div>
   );
 };

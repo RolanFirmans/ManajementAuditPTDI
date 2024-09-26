@@ -1099,3 +1099,112 @@ button {
 }
 
 /* END UPLOAD EXCEL */
+
+/* Upload file Auditee */
+.btnSearchAuditee{
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 9px;
+  background-color: #2d2d4d;
+  color: #ddd;
+}
+
+.btnUploadAuditee{
+  margin-bottom: 20px;
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 9px;
+  background-color: #2d2d4d;
+  color: #ddd
+}
+
+.btnCancelAuditee{
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 9px;
+  background-color: #ccc;
+  color: #000000;
+}
+
+.btnSaveAuditee{
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 9px;
+  background-color: #0275d8;
+  color: #ddd;
+}
+
+.form-text{
+  margin-bottom: 20px;
+  padding: 0px 30px;
+}
+
+.col-12 {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.formLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.formAuditee {
+  padding: 0.80rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.formAuditee::placeholder {
+  color: #999;
+}
+
+.formAuditee:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.btnUploadNewAuditee{
+  margin-bottom: 20px;
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 9px;
+  background-color: #2d2d4d;
+  color: #ddd
+}
+
+.textUploadNewFile{
+  align-items: justify; 
+  margin-left: 24px;
+}
+
+.formUploadFileAuditee  {
+  margin-bottom: 20px;
+  padding-top: 0px;
+}
+
+.dragAuditee{
+  margin-left: 120px;
+}
+
+.CloseDataList{
+  margin: 10px;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 9px;
+  background-color: #ccc;
+  color: #000000;
+}
+
+.UploadData{
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 9px;
+  background-color: #0275d8;
+  color: #ddd;
+}

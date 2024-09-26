@@ -167,16 +167,26 @@ const UploadFileTitleItem = async (req, res) => {
 
 
 const GetSearchFile = async (req, res) => {
-  const postgres = `
-  SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc FROM AUDIT.TMAUDEVDFILE`;
+    const query = `
+    SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 
+    FROM AUDIT.TMAUDEVDFILE
+  `;
 
-  pool.query(postgres, (error, result) => {
-    if (error) {
-      console.error("Error executing query", error.stack);
-      return response(500, null, "Terjadi kesalahan pada server", res);
-    }
-    response(200, result.rows, "Menampilkan List Evidence (Search File) ", res);
-  });
+  try {
+    const result = await pool.query(query);
+    return res.status(200).json({
+      status: 'success',
+      data: result.rows,
+      message: 'Berhasil menampilkan List Evidence (Search File)'
+    });
+  } catch (error) {
+    console.error("Error executing query", error);
+    return res.status(500).json({
+      status: 'error',
+      data: null,
+      message: 'Terjadi kesalahan pada server: ' + error.message
+    });
+}
 };
 
 // UPLOAD NEW FILE

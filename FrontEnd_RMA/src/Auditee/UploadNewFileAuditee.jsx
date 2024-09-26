@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import "../App.css";
+import { CloudDownloadOutlined } from "@ant-design/icons";
 
 const UploadFilePdf = () => {
   const [id, setId] = useState("");
@@ -35,7 +36,7 @@ const UploadFilePdf = () => {
   return (
     <div className="container" style={{ paddingTop: 60 }}>
       <div className="row">
-        <h1>Upload NewFile</h1>
+        <h1 className="textUploadNewFile">Upload NewFile</h1>
         {/* <div className="col-12">
                   <label className="form-label">ID</label>
                   <input
@@ -46,19 +47,33 @@ const UploadFilePdf = () => {
                       onChange={(e) => setId(e.target.value)}
                   />
               </div> */}
-        <div className="col-12">
-          <label className="form-label">Upload File</label>
+       <div className="col-12">
+         
+          
+          {/* Input file yang disembunyikan */}
           <input
-            className="form-control form-control-lg"
             type="file"
+            style={{ display: 'none' }}  // Sembunyikan input
+            id="fileUpload" 
             onChange={(e) => setFile(e.target.files[0])}
+            
           />
-        </div>
+          
+          {/* Ikon yang berfungsi sebagai pengganti input file */}
+          <label htmlFor="fileUpload" style={{ cursor: 'pointer' }} className="dragAuditee">
+            {file ? (
+              <span>{file.name}</span>  // Tampilkan nama file setelah di-upload
+            ) : (     
+              <CloudDownloadOutlined style={{ fontSize: '90px' }} />  // Tampilkan ikon jika tidak ada file
+            )}
+          </label>
+      </div>
+
         <div className="col-12">
-          <label className="form-label">Description</label>
+          <label className="formLabel">Description</label>
           <input
             type="text"
-            className="form-control"
+            className="formAuditee"
             placeholder="Enter Description"
             autoComplete="off"
             onChange={(e) => setDescription(e.target.value)}
@@ -66,7 +81,7 @@ const UploadFilePdf = () => {
         </div>
         <button
           type="button"
-          className="btn btn-primary btn-lg"
+          className="btnUploadNewAuditee"
           onClick={upload}
           style={{ marginTop: "20px" }}
         >

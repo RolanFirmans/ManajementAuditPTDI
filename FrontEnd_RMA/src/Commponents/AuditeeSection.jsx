@@ -97,7 +97,7 @@ const AuditeeSection = () => {
     switch (activePage) {
       case "DashboardAuditee":
         return <DashboardAuditee />;
-      case "EvidenceAuditee ":
+      case "EvidenceAuditee":
         return <EvidenceAuditee />;
       case "DGCA":
         return <DgcaAuditee />;

@@ -93,7 +93,7 @@ const AdminAuditITSection = () => {
       }
     });
   };
-  
+
   const renderContent = () => {
     switch (activePage) {
       case "DashboardAait":
@@ -135,7 +135,7 @@ const AdminAuditITSection = () => {
             className="flex items-center cursor-pointer text-white"
             onClick={toggleUserDropdown}
           >
-            <span className="mr-1">Hallo, SPI!</span>
+            <span className="mr-1">Hallo, Admin Audit IT!</span>
             <HiChevronDown size={16} />
           </div>
           {isDropdownOpen && (
