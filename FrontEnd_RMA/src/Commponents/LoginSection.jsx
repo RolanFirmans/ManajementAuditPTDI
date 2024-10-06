@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import Modal from "react-modal";
 import ImgLogin from "../Asset/ImgLogin.jpg";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from 'react-router-dom';
 import "../App.css";
 import Swal from 'sweetalert2';
 import { AuthContext } from "./AuthContext"; // Asumsikan Anda memiliki AuthContext
@@ -13,11 +13,18 @@ export default function LoginSection() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login } = useContext(AuthContext); // Gunakan context untuk mengatur status autentikasi
-
+  const location = useLocation();
   const [nik, setNik] = useState("");
   const [confirmNik, setConfirmNik] = useState("");
   const closeModal = () => setModalIsOpen(false);
 
+  const handleLogin = () => {
+    login(); // Fungsi login dari AuthContext
+    const destination = location.state?.from?.pathname || '/Admin';
+    navigate(destination, { replace: true });
+  };
+
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -44,8 +51,8 @@ export default function LoginSection() {
       login();
 
       // Arahkan pengguna berdasarkan peran
-      switch (data.user.role) {
-        case 1:
+      switch (String(data.user.role)) { // Memastikan perbandingan dalam bentuk string
+        case "1":
           Swal.fire({
             title: "Good job!",
             text: "Welcome, Admin!",
@@ -53,7 +60,7 @@ export default function LoginSection() {
           });
           navigate("/Admin");
           break;
-        case 2:
+        case "2":
           Swal.fire({
             title: "Good job!",
             text: "Welcome, Auditee!",
@@ -61,7 +68,7 @@ export default function LoginSection() {
           });
           navigate("/Auditee");
           break;
-        case 3:
+        case "3":
           Swal.fire({
             title: "Good job!",
             text: "Welcome, SPI!",
@@ -69,7 +76,7 @@ export default function LoginSection() {
           });
           navigate("/Spi");
           break;
-        case 4:
+        case "4":
           Swal.fire({
             title: "Good job!",
             text: "Welcome, Admin Audit IT!",
@@ -84,8 +91,7 @@ export default function LoginSection() {
             icon: "success"
           });
           navigate("/Dashboard");
-      }
-      
+      }      
       closeModal();
     } catch (error) {
       console.error('Login error:', error);

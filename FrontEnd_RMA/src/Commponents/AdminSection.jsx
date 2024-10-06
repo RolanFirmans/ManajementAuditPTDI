@@ -21,7 +21,8 @@ const AdminSection = () => {
   const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(false);
-  
+
+ 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
@@ -38,17 +39,18 @@ const AdminSection = () => {
   const items = [
     {
       key: '1',
-      icon: <HomeOutlined style={{fontSize: '20px' }}/>,
-      label: 'Dashboard',
-      onClick: () => handleSetActivePage("Dashboard")
+      icon: <HomeOutlined style={{fontSize:'20px'}} />,
+      label: <span className="label-dashboard">Dashboard</span>,
+      onClick: () => handleSetActivePage("Dashboard"),
     },
     {
       key: '2',
-      icon: <UserOutlined style={{fontSize: '20px' }} />,
-      label: 'Data User',
-      onClick: () => handleSetActivePage("Data User")
+      icon: <UserOutlined style={{fontSize:'20px'}} />,
+      label: <span className="label-datauser">Data User</span>,
+      onClick: () => handleSetActivePage("Data User"),
     }
   ];
+  
 
   const renderContent = () => {
     if (activePage === "Dashboard") {
@@ -91,8 +93,8 @@ const AdminSection = () => {
           <div className="SideNav-text">AUDIT</div>
         </div>
        
-        <Button
-            type="primary"
+        <button
+     
             onClick={toggleCollapsed}
             style={{
               marginBottom: -7,
@@ -100,7 +102,7 @@ const AdminSection = () => {
             className="hamburger"
           >
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          </Button>
+          </button>
         <div className="user-info relative inline-block">
           <div
             className="flex items-center cursor-pointer text-white"
@@ -110,15 +112,16 @@ const AdminSection = () => {
             <HiChevronDown size={16} />
           </div>
           {isDropdownOpen && (
-            <div className="absolute left-0 mt-1 w-40 bg-white rounded-md shadow-lg">
-              <button
-                onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <HiOutlineLogout size={20} className="mr-2 text-gray-800" /> 
-                Logout
-              </button>
-            </div>
+            <div className="absolute">
+            <button
+              onClick={handleLogout}
+              className="buttonLogOutAdmin"
+            >
+              <HiOutlineLogout size={26} color='black' />
+              Logout
+            </button>
+          </div>
+          
           )}
         </div>
       </header>
@@ -135,6 +138,7 @@ const AdminSection = () => {
             defaultSelectedKeys={['1']}
             defaultOpenKeys={['sub1']}
             mode="inline"
+            theme='dark'
             inlineCollapsed={collapsed}
             items={items}
           />

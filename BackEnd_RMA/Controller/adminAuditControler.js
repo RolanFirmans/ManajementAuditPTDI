@@ -25,13 +25,18 @@ const GetDataEvidence = async (req, res) => {
 // --MENAMPILKAN DATA AUDITEE
 const GetAuditee = async (req, res) => {
   try {
+    // Mengambil parameter role dari query, defaultnya 2 jika tidak ada
+    const role = req.query.role || 2;
+
+    // Mengubah query untuk memfilter berdasarkan role
     const result = await pool.query(`
       SELECT t.n_audusr_usrnm, t.N_AUDUSR, t.c_audusr_role
       FROM audit.TMAUDUSR t
-    `);
+      WHERE t.c_audusr_role = $1
+    `, [role]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Data tidak ditemukan' });
+      return res.status(404).json({ message: 'Data auditee tidak ditemukan' });
     }
 
     try {
@@ -212,6 +217,35 @@ const updateStatus = async (req, res) => {
   } catch (error) {
     console.error("Error executing query", error.stack);
     res.status(500).json({ message: "Terjadi kesalahan pada server" });
+  }
+};
+
+// Delete data 
+const DeleteDataAdminIT = async (req, res) => {
+  const i_audevd = req.params.i_audevd;
+  console.log('Received delete request for i_audevd:', i_audevd);
+
+  if (!i_audevd) {
+    return res.status(400).json({ error: 'i_audevd tidak valid' });
+  }
+
+  const query = 'DELETE FROM AUDIT.tmaudevd WHERE i_audevd = $1 RETURNING *';
+
+  try {
+    const result = await pool.query(query, [i_audevd]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Data karyawan tidak ditemukan' });
+    }
+
+    const deletedKaryawan = result.rows[0];
+    res.status(200).json({ 
+      message: 'Data karyawan berhasil dihapus',
+      data: deletedKaryawan
+    });
+  } catch (error) {
+    console.error('Error saat menghapus karyawan:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan saat menghapus data karyawan' });
   }
 };
 ///////////////////////////////////////////////////////
@@ -511,4 +545,5 @@ module.exports = {
     GetReviewEvidence,
     GetBalasanReviewEvidence,
     CreateKomenBaru,
+    DeleteDataAdminIT,
 };

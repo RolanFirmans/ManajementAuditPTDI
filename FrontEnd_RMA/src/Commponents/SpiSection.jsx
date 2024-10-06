@@ -6,7 +6,7 @@ import "../App.css";
 import DashboardSpi from "../SPI/DashboardSpi";
 import UploadFileExcelSpi from "../SPI/UploadFileExcelSpi";
 import EvidenceSpi from "../SPI/EvidenceSpi";
-import DGCASpi from "../SPI/DgcaSpi";
+import DgcaSpi from "../SPI/DgcaSpi";
 import FinanceSpi from "../SPI/FinanceSpi";
 import ItmlSpi from "../SPI/ItmlSpi";
 import ParkerRusselSpi from "../SPI/ParkerRusselSpi";
@@ -95,7 +95,7 @@ const SpiSection = () => {
       case "EvidenceSpi":
         return <EvidenceSpi />;
       case "DGCA":
-        return <DGCASpi />;
+        return <DgcaSpi />;
       case "FINANCE":
         return <FinanceSpi />;
       case "ITML":
@@ -155,10 +155,10 @@ const SpiSection = () => {
             <HiChevronDown size={16} />
           </div>
           {isDropdownOpen && (
-            <div className="absolute left-0 mt-1 w-40 bg-white rounded-md shadow-lg">
+            <div className="absolute">
               <button
                 onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="buttonLogOutSpi"
               >
                 <HiOutlineLogout size={20} className="mr-2 text-gray-800" /> 
                 Logout
@@ -215,6 +215,7 @@ const SpiSection = () => {
             mode="inline"
             inlineCollapsed={collapsed}
             items={items}
+            theme="dark"
           />
         </div>
         <main className="main-content" style={{ flex: 1, padding: '20px' }}>

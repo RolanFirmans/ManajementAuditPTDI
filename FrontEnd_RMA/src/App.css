@@ -5,8 +5,6 @@
   font-family: Arial;
 }
 
-
-
 /* START STYLE NAVBAR */
 .navbar {
   justify-content: space-between;
@@ -38,7 +36,7 @@
 }
 
 .nav-list li a {
-  color: #f80000;
+  color: #001f6d;
   text-decoration: none;
   font-weight: bold;
   font-size: 1rem;
@@ -47,7 +45,7 @@
 
 .nav-list li a:hover,
 .nav-list li a:focus {
-  color: #fff;
+  color: #797777;
 }
 
 .nav-list li a::after {
@@ -65,12 +63,14 @@
 }
 
 .btn-login {
-  background-color: #ff5c5c;
+  background-color: #bebebe;
   margin-right: -2%;
-  color: #fff;
+  color: #001f6d;
+  font-weight: bold;
   padding: 0.5rem 1rem;
   text-decoration: none;
-  border-radius: 4px;
+  border: none;
+  border-radius: 9px;
   transition: background-color 0.3s ease;
 }
 
@@ -377,10 +377,12 @@
 
 .hamburger {
   background: none;
+  color: #ffffff;
   border: none;
   font-size: 24px;
   cursor: pointer;
   margin-left: -60%;
+  font-weight: bold;
 }
 
 .user-info {
@@ -879,7 +881,7 @@ button {
 .pagination {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 30px;
 }
 
 .pagination button {
@@ -893,6 +895,11 @@ button {
 .pagination button.active {
   background-color: #007bff;
   color: white;
+}
+
+.paginationAuditee{
+  margin-top:20px;
+  margin-bottom: 20px;
 }
 /* END TAMPILAN DATA KARYAWAN */
 
@@ -943,9 +950,10 @@ button {
   padding: 8px;
   text-align: left;
 }
+
 .entries-info {
   font-size: 14px;
-  margin-bottom: -50px;
+  margin-top: -520px;
 }
 
 /* entries admin */
@@ -963,39 +971,16 @@ button {
 }
 
 .pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.pagination button {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  color: #0275d8;
-  padding: 8px 16px;
-  text-decoration: none;
-  transition: background-color .3s;
-  cursor: pointer;
-}
-.pagination button.active {
-  background-color: #0275d8;
-  color: white;
-  border: 1px solid #0275d8;
-}
-.pagination button:hover:not(.active) {
-  background-color: #ddd;
-}
-.pagination button:disabled {
-  color: #ccc;
-  cursor: not-allowed;
+  display: inline-block;
+  margin-top: 250px;
 }
 
 /* Pagnation-admin */
 .pagination-admin {
-  display: flex;
+  display: inline-block;
   gap: 90px;
   justify-content: center;
-  margin-left: -120px;
+  margin-left: 300px;
   margin-top: 20px;
 }
 
@@ -1020,17 +1005,61 @@ button {
   background-color: #45a049;
 }
 
-/* Button Log Out  */
+/* Button Log Out  Admin */
 .user-info {
   position: relative;
   display: inline-block;
+
+}
+
+.absolute{
+  margin-bottom: -50px;
+}
+
+.buttonLogOutAdmin{
+  background-color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+  padding: 5px 20px;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
 /* end */
 
+/* button logOut SPi */
+.buttonLogOutSpi{
+  background-color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+  padding: 5px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+/* end */
+
+/* button LogOut AdminAuditIT */
+.buttonLogOutAdminIT{
+  background-color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+  padding: 5px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+/* End */
+
+/* button LogOut Auditee */
+.buttonLogOutAuditee{
+  background-color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+  padding: 5px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+/* end  */
+
 /* Start Side bar */
 .menu-bar{
-  height: 88vh;
+  height: 140vh;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -1207,4 +1236,26 @@ button {
   border-radius: 9px;
   background-color: #0275d8;
   color: #ddd;
+}
+
+/* END Upload file Auditee */
+
+/* Icon Start btn Admin*/
+.btnConfirmAdmin{
+  margin-left: 15px;
+  font-size: 12px;
+  padding: 8px;
+  border: none;
+  border-radius: 9px;
+  background-color: #0275d8;
+  color: #ddd;
+}
+.btnCancelAdmin{
+  margin-left: 15px;
+  border: none;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 9px;
+  background-color: #ccc;
+  color: #000000;
 }

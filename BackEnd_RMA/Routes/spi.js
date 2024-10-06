@@ -22,7 +22,9 @@ const {
     GetEvidenceITML,
     GetEvidenceParkerRussel,
     GetLastUpdate,
-    GetSumary
+    GetSumary,
+    DeleteDataSPI,
+    
   } = require('../Controller/spiControler');
   
 
@@ -77,6 +79,7 @@ router.post('/reply-komen', ReplyKomen);
 // DELETE
 // Definisikan route untuk delete karyawan
 // router.delete('/delete-karyawan/:id', deleteKaryawan);
+router.delete('/delete-evidence/:i_audevd', DeleteDataSPI)
 
 // PUT
 // Definisikan route untuk update karyawan

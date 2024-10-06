@@ -10,13 +10,10 @@ const UploadFileAuditee = () => {
   const [isModalUpload, setIsModalUpload] = useState(false);
   const [isModalSearch, setIsModalSearch] = useState(false);
   const [placeholder, setPlaceholder] = useState("Loading...");
-  const [files, setFiles] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredData, setFilteredData] = useState([]);
-  const [selectedAuditee, setSelectedAuditee] = useState(null);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedAuditee, setSelectedAuditee] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -28,7 +25,6 @@ const UploadFileAuditee = () => {
       console.log('API Response:', response.data);
       if (Array.isArray(response.data.data)) {
         setData(response.data.data);
-        setFiles(response.data.data);
       } else {
         console.error('Expected array in response.data.data, got:', response.data);
         setError('Data yang diterima tidak sesuai format yang diharapkan');
@@ -46,6 +42,7 @@ const UploadFileAuditee = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Periksa apakah file dipilih
     if (!file && !selectedAuditee) {
       alert("Silakan pilih file atau pilih file dari daftar pencarian.");
       return;
@@ -59,22 +56,27 @@ const UploadFileAuditee = () => {
     }
     formData.append("description", description);
 
+    console.log("Mengirim data ke server:", {
+      description,
+      file: file ? file.name : selectedAuditee?.n_audevdfile_file,
+    });
+
     try {
-      await axios.post(
-        `${import.meta.env.VITE_HELP_DESK}/SPI/upload-file-evidence`,
+      const response = await axios.post(
+        `${import.meta.env.VITE_HELP_DESK}/Auditee/upload-new-file`,
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          // Hapus Content-Type, Axios akan mengatur ini untuk FormData
+          // headers: {
+          //   "Content-Type": "multipart/form-data",
+          // },
         }
       );
       alert("File berhasil diunggah!");
-      setFile(null);
-      setSelectedAuditee(null);
-      setDescription("");
+      handleCancel(); // Reset form setelah berhasil mengunggah
     } catch (error) {
       console.error("Error mengunggah file:", error);
+      alert(`Error: ${error.response?.data?.error || "Terjadi kesalahan"}`);
     }
   };
 
@@ -82,12 +84,11 @@ const UploadFileAuditee = () => {
     setFile(null);
     setSelectedAuditee(null);
     setDescription("");
+    closeModal();
   };
 
   const handleUploadFile = () => setIsModalUpload(true);
-
   const handleSearchFile = () => setIsModalSearch(true);
-
   const handleCheckboxChange = (file) => {
     setSelectedAuditee(file);
     closeModal();
@@ -123,37 +124,20 @@ const UploadFileAuditee = () => {
         <div className="form-group">
           <label htmlFor="file">Bukti:</label>
           <div className="file-buttons">
-            <button
-              type="button"
-              className="btnSearchAuditee"
-              onClick={handleSearchFile}
-            >
+            <button type="button" className="btnSearchAuditee" onClick={handleSearchFile}>
               Cari File
             </button>
-            <button
-              type="button"
-              className="btnUploadAuditee"
-              onClick={handleUploadFile}
-            >
+            <button type="button" className="btnUploadAuditee" onClick={handleUploadFile}>
               Unggah File Baru
             </button>
-            <input
-              type="file"
-              id="file"
-              style={{ display: "none" }}
-              onChange={handleFileChange}
-            />
+            <input type="file" id="file" style={{ display: "none" }} onChange={handleFileChange} />
           </div>
           <div>
             {file ? file.name : selectedAuditee ? selectedAuditee.n_audevdfile_file : "Tidak ada file yang dipilih"}
           </div>
         </div>
         <div className="form-buttons">
-          <button
-            type="button"
-            className="btnCancelAuditee"
-            onClick={handleCancel}
-          >
+          <button type="button" className="btnCancelAuditee" onClick={handleCancel}>
             Batal
           </button>
           <button type="submit" className="btnSaveAuditee">
@@ -169,7 +153,7 @@ const UploadFileAuditee = () => {
         className="user-modal"
         overlayClassName="user-modal-overlay"
       >
-        <UploadNewFileAuditee />
+        <UploadNewFileAuditee onClose={closeModal} />
       </Modal>
 
       <Modal
@@ -210,7 +194,7 @@ const UploadFileAuditee = () => {
                 <tr>
                   <td colSpan="4">Tidak ada data tersedia</td>
                 </tr>
-              )}            
+              )}
             </tbody>
           </table>
           <button onClick={closeModal} className="CloseDataList">Batal</button>

@@ -139,10 +139,10 @@ const AdminAuditITSection = () => {
             <HiChevronDown size={16} />
           </div>
           {isDropdownOpen && (
-            <div className="absolute left-0 mt-1 w-40 bg-white rounded-md shadow-lg">
+            <div className="absolute">
               <button
                 onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="buttonLogOutAdminIT"
               >
                 <HiOutlineLogout size={20} className="mr-2 text-gray-800" /> 
                 Logout
@@ -196,6 +196,7 @@ const AdminAuditITSection = () => {
             mode="inline"
             inlineCollapsed={collapsed}
             items={items}
+            theme="dark"
           />
         </div>
         <main className="main-content" style={{ flex: 1, padding: '20px' }}>

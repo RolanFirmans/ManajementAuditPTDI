@@ -1,14 +1,17 @@
 import React, { useContext } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from './AuthContext';
 
-const ProtectedRoute = ({ redirectPath = '/Login' }) => {
+const ProtectedRoute = () => {
   const { isAuthenticated } = useContext(AuthContext);
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to={redirectPath} replace />;
+    // Redirect ke halaman login, sambil menyimpan lokasi yang dicoba diakses
+    return <Navigate to="/Login" state={{ from: location }} replace />;
   }
 
+  // Jika sudah terotentikasi, render child routes
   return <Outlet />;
 };
 

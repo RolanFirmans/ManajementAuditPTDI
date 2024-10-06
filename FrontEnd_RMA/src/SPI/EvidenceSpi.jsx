@@ -4,6 +4,9 @@ import DatePicker from "react-datepicker";
 import { getYear, format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
+import { Pagination } from 'antd';
+import { useMemo } from 'react';
+import Swal from 'sweetalert2';
 import "../App.css";
 
 Modal.setAppElement("#root");
@@ -17,6 +20,10 @@ const EvidenceSpi = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [statusCompletedOrders, setStatusCompletedOrders] = useState([]);
   const [orderStatuses, setOrderStatuses] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const sortedOrders = orders.sort((a, b) => a.no - b.no);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [newUser, setNewUser] = useState({
     no: "",
     dataAndDocumentNeeded: "",
@@ -31,6 +38,7 @@ const EvidenceSpi = () => {
     publishingYear: "",
   });
 
+  // Fungsi untuk mengonversi status ke string
   const convertStatusToString = (status) => {
     const statusNum = Number(status);
     switch (statusNum) {
@@ -41,6 +49,7 @@ const EvidenceSpi = () => {
     }
   };
 
+  // Fungsi untuk mengonversi auditor ke string 
   const convertAuditorToString = (auditor) => {
     const auditorNum = Number(auditor);
     switch (auditorNum) {
@@ -52,6 +61,7 @@ const EvidenceSpi = () => {
     }
   };
 
+  // Fungsi untuk mengonversi status ke nomor
   const convertStatusToNumber = (status) => {
     const statusStr = String(status).toLowerCase();
     switch (statusStr) {
@@ -62,6 +72,7 @@ const EvidenceSpi = () => {
     }
   };
 
+  // Fungsi untuk mengonversi phase ke string
   const convertPhaseToString = function (phase) {
     const phaseNumber = Number(phase);
     switch (phaseNumber) {
@@ -72,6 +83,7 @@ const EvidenceSpi = () => {
     }
   }
 
+   // Fungsi untuk mengonversi auditor ke nomor
   const convertAuditorToNumber = (auditor) => {
     if (typeof auditor !== 'string') {
       console.warn(`Unexpected auditor value: ${auditor}. Using default value.`);
@@ -89,7 +101,7 @@ const EvidenceSpi = () => {
     }
   };
 
-  
+  // Fungsi untuk mengonversi status complete
   const convertStatusComplete = (statusComplete, hasRemarks = false) => {
     console.log("convertStatusComplete dipanggil dengan:", statusComplete, hasRemarks);
     let result;
@@ -110,15 +122,17 @@ const EvidenceSpi = () => {
     localStorage.setItem("orders", JSON.stringify(orders));
   }, [orders]);
 
+ 
+ 
  // Fungsi untuk memperbarui nomor urutan pada orders
- const updateOrderNumbers = (ordersList) => {
-  return ordersList.map((order, index) => ({
-    ...order,
-    no: index + 1,
-  }));
-};
+  const updateOrderNumbers = (ordersList) => {
+    return ordersList.map((order, index) => ({
+      ...order,
+      no: index + 1,
+    }));
+  };
 
-// Edit User
+ // Fungsi untuk mengedit user
 const handleEditUser = (user) => {
   setEditingUser(user);
   setNewUser({
@@ -132,6 +146,7 @@ const handleEditUser = (user) => {
   setIsModalOpen(true);
 };
 
+// Fungsi untuk mengupdate input
 const handleInputChange = (e) => {
   const { name, value } = e.target;
   setNewUser(prevState => ({
@@ -156,9 +171,9 @@ const handleUpdate = async () => {
     console.log('Sending update request with data:', updateData);
 
     const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/SPI/edit-data`, updateData);
-
+    
     console.log('Server response:', response.data);
-
+    
     if (response.data && response.data.statusCode === 200) {
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -202,15 +217,47 @@ const handleUpdate = async () => {
     setSelectedYear(year);
   };
 
-// -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
-  const filteredOrders = selectedYear
-  ? orders.filter((order) => order.publishingYear === parseInt(selectedYear))
-  : orders;
+  const filteredOrders = useMemo(() => {
+    const filtered = selectedYear
+      ? orders.filter((order) => order.publishingYear === parseInt(selectedYear))
+      : orders;
+  
+    return filtered.filter((order) => {
+      const searchLower = searchQuery.toLowerCase();
+      
+      const matchesSearch = [
+        order.dataAndDocumentNeeded,
+        order.phase,
+        order.status,
+        order.deadline,
+        order.remarksByAuditee,
+        order.remarksByAuditor,
+        order.auditee?.nik,
+        order.auditor,
+        order.statusComplete?.text
+      ].some(field => 
+        field && String(field).toLowerCase().includes(searchLower)
+      );
+  
+      return matchesSearch;
+    });
+  }, [orders, selectedYear, searchQuery]);
 
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredOrders, currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+  
+
+// -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
   const fetchDataByYear = useCallback(async (year) => {
     if (year) {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`, {
+        const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/tmau-devd`, {
           params: { year: year }
         });
         if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
@@ -258,7 +305,7 @@ const handleUpdate = async () => {
   // -- MENAMPILKAN AUDITEE --
 const GetAuditee = async (orderNo, i_audevd_aud) => {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/select-auditee`, {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/selected-auditee`, {
       params: { i_audevd: orderNo }
     });
     if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
@@ -302,7 +349,7 @@ const GetAuditee = async (orderNo, i_audevd_aud) => {
 // MENAMPILKAN DATA REMARKS BY AUDITEE START :
 const fetchRemarks = async (key) => {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/selected-remarks-auditee`, {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/selected-remarks-auditee`, {
       params: { key: key }
     });
     if (response.data && response.data.payload && response.data.payload.data && response.data.payload.data.length > 0) {
@@ -349,6 +396,61 @@ const handleUpdateStatusSPI = async (order) => {
   }
 };
 
+const handleDeleteUser = async (no) => {
+  console.log('Attempting to delete user with no:', no);
+  if (!no) {
+    Swal.fire('Error', 'Invalid order number', 'error');
+    return;
+  }
+
+  const swalWithBootstrapButtons = Swal.mixin({
+    customClass: {
+      confirmButton: "btnConfirmAdmin",
+      cancelButton: "btnCancelAdmin"
+    },
+    buttonsStyling: false
+  });
+
+  const result = await swalWithBootstrapButtons.fire({
+    title: "Are you sure?",
+    text: "You won't be able to revert this!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it!",
+    cancelButtonText: "No, cancel!",
+    reverseButtons: true
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/AuditIT/delete-evidence/${no}`);
+      
+      if (response.status === 200) {
+        console.log('Evidence berhasil dihapus:', response.data);
+        setOrders(prevOrders => prevOrders.filter(order => order.no !== no));
+
+        swalWithBootstrapButtons.fire({
+          title: "Deleted!",
+          text: "Evidence telah berhasil dihapus.",
+          icon: "success"
+        });
+      } else {
+        throw new Error(response.data.message || 'Gagal menghapus evidence');
+      }
+    } catch (error) {
+      console.error('Error saat menghapus evidence:', error);
+      Swal.fire('Error', `Gagal menghapus evidence: ${error.response?.data?.message || error.message}`, 'error');
+    }
+  } else if (result.dismiss === Swal.DismissReason.cancel) {
+    swalWithBootstrapButtons.fire({
+      title: "Cancelled",
+      text: "Evidence tidak jadi dihapus.",
+      icon: "error"
+    });
+  }
+};
+
+
 useEffect(() => {
   localStorage.setItem('orderStatuses', JSON.stringify(
     orders.reduce((acc, order) => {
@@ -380,6 +482,15 @@ useEffect(() => {
         placeholderText="Select year" 
       />
     </div>
+    <div className="search-container">
+      <input
+        type="text"
+        placeholder="Search..."
+        className="search-input"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+    </div>
     <div className="evidence-table">
       <table className="table  table-striped">
         <thead class=" table-spi table-dark">
@@ -398,8 +509,8 @@ useEffect(() => {
           </tr>
         </thead>
              <tbody>
-                {filteredOrders.length > 0 ? (
-                filteredOrders.map((order, index) => {
+                {sortedOrders.length > 0 ? (
+                paginatedOrders.map((order, index) => {
                 return (
                   <tr key={order.no || index}>
                     <td>{order.no}</td>
@@ -424,14 +535,12 @@ useEffect(() => {
                   </td>
                     <td>
                     <i className="bi-pencil-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer', marginRight: '10px' }} onClick={() => handleEditUser(order)}></i>
-                    <i className="bi-trash" style={{ color: 'black', fontSize: '20px', cursor: 'pointer' }} onClick={() => handleDeleteUser(order.NIK)}></i>
+                    <i className="bi-trash" style={{ color: 'black', fontSize: '20px', cursor: 'pointer' }} onClick={() => handleDeleteUser(order.no)}></i>
                 
                       {order.statusComplete.backgroundColor === "yellow" && (
-                      <button 
-                        onClick={() => handleUpdateStatusSPI(order)}>
-                        Update Status
-                      </button>
+                         <i className="bi-clipboard2-check-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer' }} onClick={() => handleUpdateStatusSPI(order)}></i>
                     )}
+      
                     </td>
                   </tr>
                 );
@@ -444,7 +553,17 @@ useEffect(() => {
           </tbody>
       </table>
     </div>
-
+       {/* pagination */}
+      <div className="pagination-admin">
+        <Pagination
+          current={currentPage}
+          total={filteredOrders.length}
+          pageSize={itemsPerPage}
+          onChange={handlePageChange}
+          showSizeChanger={false}
+          showQuickJumper={false}
+        />
+      </div>
 {/* Handle Edit  */}
 <Modal
         isOpen={isModalOpen}

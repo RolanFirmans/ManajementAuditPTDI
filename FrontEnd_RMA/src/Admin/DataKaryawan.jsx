@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../App.css";
 import { Search } from "lucide-react";
+import { Pagination } from 'antd';
 
 const DataKaryawan = ({ onSelectKaryawan, filterOrganisasi }) => {
   const [dataKaryawan, setDataKaryawan] = useState([]);
@@ -74,8 +75,8 @@ const DataKaryawan = ({ onSelectKaryawan, filterOrganisasi }) => {
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -115,45 +116,15 @@ const DataKaryawan = ({ onSelectKaryawan, filterOrganisasi }) => {
         {filteredData.length} entries
       </div>
       <div className="pagination">
-        <button
-          onClick={() => handlePageChange(1)}
-          disabled={currentPage === 1}
-        >
-          &laquo;
-        </button>
-        <button
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          &lt;
-        </button>
-        {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-          const pageNumber = currentPage + i - Math.floor(3 / 2);
-          if (pageNumber > 0 && pageNumber <= totalPages) {
-            return (
-              <button
-                key={pageNumber}
-                onClick={() => handlePageChange(pageNumber)}
-                className={currentPage === pageNumber ? "active" : ""}
-              >
-                {pageNumber}
-              </button>
-            );
-          }
-          return null;
-        })}
-        <button
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          &gt;
-        </button>
-        <button
-          onClick={() => handlePageChange(totalPages)}
-          disabled={currentPage === totalPages}
-        >
-          &raquo;
-        </button>
+        <Pagination
+          current={currentPage}
+          total={filteredData.length}
+          pageSize={itemsPerPage}
+          onChange={handlePageChange}
+          showSizeChanger={false}
+          showQuickJumper={false}
+          className="pagination"
+        />
       </div>
     </div>
   );

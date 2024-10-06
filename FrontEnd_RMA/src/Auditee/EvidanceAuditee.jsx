@@ -4,6 +4,8 @@ import DatePicker from "react-datepicker";
 import { getYear } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
+import { Pagination } from 'antd';
+import { useMemo } from 'react';
 import "../App.css";
 
 import UploadFileAuditee from "../Auditee/UploadFileAuditee"
@@ -18,6 +20,8 @@ const EvidenceAuditee = () => {
   const [auditeeData, setAuditeeData] = useState([]);
   const [isModalUpload, setIsModalUpload] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [editingUser, setEditingUser] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const itemsPerPage = 10;
@@ -225,10 +229,43 @@ const EvidenceAuditee = () => {
     setSelectedYear(year);
   };
   
+  const filteredOrders = useMemo(() => {
+    let result = selectedYear
+      ? orders.filter((order) => order.publishingYear === selectedYear)
+      : orders;
+  
+    if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
+      result = result.filter((order) => {
+        return [
+          order.dataAndDocumentNeeded,
+          order.phase,
+          order.status,
+          order.deadline,
+          order.remarksByAuditee,
+          order.remarksByAuditor,
+          order.auditee?.nik,
+          order.auditee?.name,
+          order.auditor,
+          order.statusComplete?.text
+        ].some(field => 
+          field && String(field).toLowerCase().includes(searchLower)
+        );
+      });
+    }
+  
+    return result.sort((a, b) => a.no - b.no);
+  }, [orders, selectedYear, searchQuery]);
+
+  const currentPageData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredOrders, currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
-  const filteredOrders = selectedYear
-  ? orders.filter((order) => order.publishingYear === selectedYear)
-  : orders;
 
     const fetchDataByYear = useCallback(async (year) => {
       if (year) {
@@ -392,6 +429,15 @@ const fetchRemarks = async (key) => {
           placeholderText="Select year"
         />
       </div>
+      <div className="search-container">
+        <input
+          type="text"
+          placeholder="Search..."
+          className="search-input"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
       <div className="evidence-table">
         <table className="table  table-striped">
           <thead class=" table-spi table-dark">
@@ -450,6 +496,16 @@ const fetchRemarks = async (key) => {
             )}
           </tbody>
         </table>
+      </div>
+      <div className="pagination-admin">
+        <Pagination
+          current={currentPage}
+          total={filteredOrders.length}
+          pageSize={itemsPerPage}
+          onChange={handlePageChange}
+          showSizeChanger={false}
+          showQuickJumper={false}
+        />
       </div>
 
       {/* Upload File Excel */}

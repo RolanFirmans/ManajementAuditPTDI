@@ -6,6 +6,8 @@ import { getYear } from 'date-fns';
 import 'react-datepicker/dist/react-datepicker.css';
 import "../App.css";
 import Swal from 'sweetalert2';
+import { Pagination } from 'antd';
+import { useMemo } from 'react';
 
 Modal.setAppElement("#root");
 
@@ -19,6 +21,9 @@ const EvidenceAait = () => {
   const [currentEditOrder, setCurrentEditOrder] = useState(null);
   const [selectedAuditees, setSelectedAuditees] = useState({});
   const itemsPerPage = 10;
+   // Sorting data berdasarkan kolom 'No' secara ascending
+  const sortedOrders = orders.sort((a, b) => a.no - b.no);
+
 
   const convertStatus = (status) => {
     switch (status) {
@@ -63,6 +68,9 @@ const EvidenceAait = () => {
 
   const convertStatusComplete = (statusComplete, hasRemarks = false) => {
     console.log('Converting status:', statusComplete, 'hasRemarks:', hasRemarks);
+    if (statusComplete && statusComplete.isUpdated) {
+      return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
+    }
     if (statusComplete === 2) { 
       return { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black" };
     }
@@ -71,10 +79,16 @@ const EvidenceAait = () => {
     }
     return { text: "NOT COMPLETE", backgroundColor: "red", color: "white" };
   };
-
   useEffect(() => {
     localStorage.setItem("orders", JSON.stringify(orders));
   }, [orders]);
+
+  useEffect(() => {
+    const savedOrders = localStorage.getItem("orders");
+    if (savedOrders) {
+      setOrders(JSON.parse(savedOrders));
+    }
+  }, []);
 
   // const handleAddUser = () => {
   //   setOrders((prev) => [
@@ -96,10 +110,50 @@ const EvidenceAait = () => {
     setSelectedYear(year);
   };
 
+  // Tambahkan fungsi pencarian yang menggunakan useMemo
+  const filteredOrders = useMemo(() => {
+    // Pertama, filter berdasarkan tahun
+    let result = selectedYear
+      ? orders.filter((order) => order.publishingYear === selectedYear)
+      : orders;
+
+    // Kemudian, filter berdasarkan searchQuery jika ada
+    if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
+      result = result.filter((order) => {
+        return [
+          order.dataAndDocumentNeeded,
+          order.phase,
+          order.status,
+          order.deadline,
+          order.remarksByAuditee,
+          order.remarksByAuditor,
+          order.auditee?.nik,
+          order.auditee?.name,
+          order.auditor,
+          order.statusComplete?.text
+        ].some(field => 
+          field && String(field).toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Sort berdasarkan nomor
+    return result.sort((a, b) => a.no - b.no);
+  }, [orders, selectedYear, searchQuery]);
+
+   // Menghitung data untuk halaman saat ini
+   const currentPageData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredOrders, currentPage]);
+
+  // Handler untuk perubahan halaman
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
 // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
-  const filteredOrders = selectedYear
-  ? orders.filter((order) => order.publishingYear === selectedYear)
-  : orders;
 
   const fetchDataByYear = useCallback(async (year) => {
     if (year) {
@@ -108,33 +162,33 @@ const EvidenceAait = () => {
           params: { year: year }
         });
         if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
+          const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
           const formattedData = response.data.payload.data.map(item => {
-            const storedOrder = JSON.parse(localStorage.getItem("orders") || "[]")
-              .find(o => o.no === item.i_audevd);
+            const savedOrder = savedOrders.find(o => o.no === item.i_audevd);
             return {
               no: item.i_audevd,
               dataAndDocumentNeeded: item.n_audevd_title,
               phase: convertPhase(item.e_audevd_phs),
               status: convertStatus(item.c_audevd_stat),
               deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
-              remarksByAuditee: "",
+              remarksByAuditee: savedOrder ? savedOrder.remarksByAuditee : "",
               remarksByAuditor: item.e_audevd_audr,
-              auditee: { nik: '', name: '' },
+              auditee: savedOrder ? savedOrder.auditee : { nik: '', name: '' },
               auditor: convertAuditor(item.c_audevd_audr),
-              statusComplete: convertStatusComplete(
-                storedOrder ? storedOrder.statusComplete : item.c_audevd_statcmp,
-                false,
-                storedOrder ? storedOrder.isUpdated : false
-              ),
+              statusComplete: savedOrder ? savedOrder.statusComplete : convertStatusComplete(item.c_audevd_statcmp),
               publishingYear: item.c_year,
               i_audevd_aud: item.i_audevd_aud || '',
-              isUpdated: storedOrder ? storedOrder.isUpdated : false,
+              isUpdated: savedOrder ? savedOrder.isUpdated : false,
             };
           });
           setOrders(formattedData);
           for (const order of formattedData) {
-            await GetAuditee(order.no, order.i_audevd_aud);
-            await fetchRemarks(order.no);
+            if (!order.auditee.nik) {
+              await GetAuditee(order.no, order.i_audevd_aud);
+            }
+            if (!order.remarksByAuditee) {
+              await fetchRemarks(order.no);
+            }
           }
         } else {
           setOrders([]);
@@ -152,15 +206,17 @@ const EvidenceAait = () => {
 useEffect(() => {
   const fetchAuditeeData = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`);
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/auditee`, {
+        params: { role: 2 }
+      });
       if (response.data && Array.isArray(response.data.payload)) {
         setAuditeeData(response.data.payload);
       } else {
-        console.error('Expected an array but got:', response.data.payload);
+        console.error('Data yang diharapkan adalah array, tetapi menerima:', response.data.payload);
         setAuditeeData([]);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Kesalahan saat mengambil data:', error);
       setAuditeeData([]);
     }
   };
@@ -198,7 +254,6 @@ const handleSelectAuditee = async () => {
     i_audevd: currentEditOrder.no,
     n_audusr_usrnm: selectedNik
   };
-  console.log('Data yang dikirim:', requestData);
 
   try {
     const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-auditee`, requestData);
@@ -210,8 +265,20 @@ const handleSelectAuditee = async () => {
           ? { ...order, auditee: { nik: selectedNik, name: auditeeData.find(a => a.n_audusr_usrnm === selectedNik)?.n_audusr } } 
           : order
       ));
-      setIsEditModalOpen(false);
-      setSelectedAuditees({});
+      
+      // Update the current edit order
+      setCurrentEditOrder(prevOrder => ({
+        ...prevOrder,
+        auditee: { nik: selectedNik, name: auditeeData.find(a => a.n_audusr_usrnm === selectedNik)?.n_audusr }
+      }));
+
+      // Clear the selected auditee for this order
+      setSelectedAuditees(prev => {
+        const updated = { ...prev };
+        delete updated[currentEditOrder.no];
+        return updated;
+      });
+
       Swal.fire({
         title: "Good job!",
         text: `Data berhasil di Upload`,
@@ -293,32 +360,94 @@ const fetchRemarks = async (key) => {
 };
 
 const handleUpdateStatus = async (order) => {
-    try {
-      const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-status`, {
-        I_AUDEVD: order.no
-      });
+  try {
+    const response = await axios.post(`${import.meta.env.VITE_HELP_DESK}/AuditIT/update-status`, {
+      I_AUDEVD: order.no
+    });
 
-      if (response.data && response.data.message === "Update Status Berhasil") {
-        console.log("Status berhasil diperbarui");
-        setOrders(prevOrders => prevOrders.map(o => 
-          o.no === order.no 
-            ? { ...o, statusComplete: convertStatusComplete(2, true, true), isUpdated: true } 
-            : o
-        ));
-        // Simpan status yang diperbarui ke localStorage
-        const updatedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-        const updatedOrderIndex = updatedOrders.findIndex(o => o.no === order.no);
-        if (updatedOrderIndex !== -1) {
-          updatedOrders[updatedOrderIndex] = { ...updatedOrders[updatedOrderIndex], statusComplete: 2, isUpdated: true };
-          localStorage.setItem("orders", JSON.stringify(updatedOrders));
-        }
+    if (response.data && response.data.message === "Update Status Berhasil") {
+      console.log("Status berhasil diperbarui");
+      setOrders(prevOrders => prevOrders.map(o => 
+        o.no === order.no 
+          ? { 
+              ...o, 
+              statusComplete: { 
+                text: "COMPLETE AUDITEE ADMIN IT", 
+                backgroundColor: "yellow", 
+                color: "black", 
+                isUpdated: true 
+              } 
+            } 
+          : o
+      ));
+      // Simpan status yang diperbarui ke localStorage
+      const updatedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+      const updatedOrderIndex = updatedOrders.findIndex(o => o.no === order.no);
+      if (updatedOrderIndex) {
+        updatedOrders[updatedOrderIndex] = { ...updatedOrders[updatedOrderIndex], statusComplete: { text: "COMPLETE AUDITEE ADMIN IT", backgroundColor: "yellow", color: "black", isUpdated: true } };
+        localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      }
+    } else {
+      console.error("Gagal memperbarui status:", response.data ? response.data.message : "Respons tidak valid");
+    }
+  } catch (error) {
+    console.error("Error saat memperbarui status:", error.response ? error.response.data : error.message);
+  }
+};
+
+const handleDeleteUser = async (no) => {
+  console.log('Attempting to delete user with no:', no);
+  if (!no) {
+    Swal.fire('Error', 'Invalid order number', 'error');
+    return;
+  }
+
+  const swalWithBootstrapButtons = Swal.mixin({
+    customClass: {
+      confirmButton: "btnConfirmAdmin",
+      cancelButton: "btnCancelAdmin"
+    },
+    buttonsStyling: false
+  });
+
+  const result = await swalWithBootstrapButtons.fire({
+    title: "Are you sure?",
+    text: "You won't be able to revert this!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it!",
+    cancelButtonText: "No, cancel!",
+    reverseButtons: true
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/AuditIT/delete-evidence/${no}`);
+      
+      if (response.status === 200) {
+        console.log('Evidence berhasil dihapus:', response.data);
+        setOrders(prevOrders => prevOrders.filter(order => order.no !== no));
+
+        swalWithBootstrapButtons.fire({
+          title: "Deleted!",
+          text: "Evidence telah berhasil dihapus.",
+          icon: "success"
+        });
       } else {
-        console.error("Gagal memperbarui status:", response.data ? response.data.message : "Respons tidak valid");
+        throw new Error(response.data.message || 'Gagal menghapus evidence');
       }
     } catch (error) {
-      console.error("Error saat memperbarui status:", error.response ? error.response.data : error.message);
+      console.error('Error saat menghapus evidence:', error);
+      Swal.fire('Error', `Gagal menghapus evidence: ${error.response?.data?.message || error.message}`, 'error');
     }
-  };
+  } else if (result.dismiss === Swal.DismissReason.cancel) {
+    swalWithBootstrapButtons.fire({
+      title: "Cancelled",
+      text: "Evidence tidak jadi dihapus.",
+      icon: "error"
+    });
+  }
+};
 
 useEffect(() => {
     if (selectedYear) {
@@ -339,9 +468,7 @@ const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
 const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-const handlePageChange = (pageNumber) => {
-  setCurrentPage(pageNumber);
-};
+
 
   return (
     <div className="evidence-content">
@@ -356,6 +483,15 @@ const handlePageChange = (pageNumber) => {
           placeholderText="Select year" 
         />
       </div>  
+      <div className="search-container">
+          <input
+            type="text"
+            placeholder="Search..."
+            className="search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       <div className="evidence-table">
         <table className="table  table-striped">
           <thead class=" table-spi table-dark">
@@ -374,7 +510,7 @@ const handlePageChange = (pageNumber) => {
             </tr>
           </thead>
                <tbody>
-                  {filteredOrders.length > 0 ? (
+                  {currentPageData.length > 0 ? (
                   filteredOrders.map((order, index) => {
                   // Cari data auditee berdasarkan `order.auditee`
                   const auditee = auditeeData.find(auditee => auditee.n_audusr_usrnm === order.auditee) || {};
@@ -399,9 +535,11 @@ const handlePageChange = (pageNumber) => {
                       </td>
                       <td>
                       <i className="bi-pencil-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer', marginRight: '10px' }} onClick={() => handleEditUser(order)}></i>
-                      <i className="bi-trash" style={{ color: 'black', fontSize: '20px', cursor: 'pointer' }} onClick={() => handleDeleteUser(order.NIK)}></i>
+                      <i className="bi-trash" style={{ color: 'black', fontSize: '20px', cursor: 'pointer' }} onClick={() => handleDeleteUser(order.no)}></i>
                         {order.statusComplete.backgroundColor === "orange" && (
-                        <button onClick={() => handleUpdateStatus(order)}>Update Status</button>
+
+                        <i className="bi-clipboard2-check-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer' }} onClick={() => handleUpdateStatus(order)}></i>
+
                         )}
                       </td>
                     </tr>
@@ -415,26 +553,36 @@ const handlePageChange = (pageNumber) => {
             </tbody>
         </table>
       </div>
+      <div className="pagination-admin">
+          <Pagination
+            current={currentPage}
+            total={filteredOrders.length}
+            pageSize={itemsPerPage}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+            showQuickJumper={false}
+          />
+        </div>
 
       {/* Edit User Modal */}
       <Modal
-        isOpen={isEditModalOpen}
-        onRequestClose={() => setIsEditModalOpen(false)}
-        contentLabel="Edit User Modal"
-        className="evidence-modal"
-        overlayClassName="evidence-modal-overlay"
-      >
-        <h2>Edit User</h2>
-        <div className="modal-content">
-          <div className="auditee-table-container">
-            <h3>DATA AUDITEE</h3>
-            <input
-              type="text"
-              placeholder="Search..."
-              className="search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          isOpen={isEditModalOpen}
+          onRequestClose={() => setIsEditModalOpen(false)}
+          contentLabel="Edit User Modal"
+          className="evidence-modal"
+          overlayClassName="evidence-modal-overlay"
+        >
+          <h2>Edit User</h2>
+          <div className="modal-content">
+            <div className="auditee-table-container">
+              <h3>DATA AUDITEE</h3>
+              <input
+                type="text"
+                placeholder="Search..."
+                className="search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             <table className="auditee-table">
               <table className="table table-striped">
               <thead>
@@ -477,21 +625,18 @@ const handlePageChange = (pageNumber) => {
             <div className="entries-info">
           Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} entries
         </div>
-        <div className="pagination">
-        <button onClick={() => handlePageChange(1)} disabled={currentPage === 1}>&laquo;</button>
-        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>&lt;</button>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-          <button
-            key={number}
-            onClick={() => handlePageChange(number)}
-            className={currentPage === number ? 'active' : ''}
-          >
-            {number}
-          </button>
-        ))}
-        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>&gt;</button>
-        <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>&raquo;</button>
-      </div>
+       <div className="pagination">
+       <Pagination
+            current={currentPage}
+            total={filteredData.length}
+            pageSize={itemsPerPage}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+            showQuickJumper={false}
+            className="pagination"/>
+    
+       </div>
+        
           </div>
         </div>
       </Modal>

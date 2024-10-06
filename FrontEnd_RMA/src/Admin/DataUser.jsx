@@ -7,6 +7,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Pagination } from 'antd';
+import { useMemo } from 'react';
+import _ from 'lodash';
 
 
 Modal.setAppElement('#root');
@@ -19,6 +21,7 @@ const DataUser = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortedOrders, setSortedOrders] = useState([]);
   const itemsPerPage = 10;
 
 
@@ -51,7 +54,8 @@ const DataUser = () => {
   };
 
   // Fungsi untuk memfilter data berdasarkan pencarian
-  const filteredData = orders.filter((order) => {
+const filteredData = useMemo(() => {
+  return sortedOrders.filter((order) => {
     const matchesFilter = filterOrganisasi
       ? order.Organization &&
         order.Organization
@@ -68,6 +72,7 @@ const DataUser = () => {
 
     return matchesFilter && matchesSearch;
   });
+}, [sortedOrders, filterOrganisasi, searchQuery]);
 
   console.log("Data yang difilter:", filteredData);
 
@@ -78,6 +83,11 @@ const DataUser = () => {
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
+  useEffect(() => {
+    const sorted = [...orders].sort((a, b) => parseInt(a.No) - parseInt(b.No));
+    setSortedOrders(sorted);
+  }, [orders, currentPage]);
+  
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
@@ -89,16 +99,16 @@ const DataUser = () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/Admin/karyawan`);
       const mappedUsers = response.data.payload
-        .map((item, index) => ({
-          ...item,
-          sortOrder: index, // Tambahkan field untuk pengurutan
-          No: item.i_audusr,
-          NIK: item.n_audusr_usrnm,
-          Name: item.n_audusr,
-          Role: getRoleLabel(item.role),
-          Organization: item.organisasi,
-        }))
-        .sort((a, b) => a.No - b.No); // Urutkan berdasarkan No
+      .map((item, index) => ({
+        ...item,
+        sortOrder: index, // Tambahkan field untuk pengurutan
+        No: parseInt(item.i_audusr), // Ubah No menjadi angka
+        NIK: item.n_audusr_usrnm,
+        Name: item.n_audusr,
+        Role: getRoleLabel(item.role),
+        Organization: item.organisasi,
+      }))
+      .sort((a, b) => a.No - b.No); // Urutkan berdasarkan No
       setOrders(mappedUsers);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -294,8 +304,8 @@ const DataUser = () => {
     // Setup SweetAlert with custom Bootstrap buttons
     const swalWithBootstrapButtons = Swal.mixin({
       customClass: {
-        confirmButton: "btn btn-success",
-        cancelButton: "btn btn-danger"
+        confirmButton: "btnConfirmAdmin",
+        cancelButton: "btnCancelAdmin"
       },
       buttonsStyling: false
     });
@@ -340,12 +350,10 @@ const DataUser = () => {
         icon: "error"
       });
     }
-  };
+};
   
   
   
-
-// Panggil handleDeleteUser dengan ID yang sesuai
   const openKaryawanModal = () => {
     setIsUserModalOpen(false);
     setIsKaryawanModalOpen(true);
@@ -506,8 +514,9 @@ const DataUser = () => {
         overlayClassName="karyawan-modal-overlay"
       >
         <div className="modal-header">
+       l
           <h3>Data Karyawan</h3>
-          <button onClick={() => setIsKaryawanModalOpen(false)} className="modal-close">&times;</button>
+          <i className="bi-x-square-fill" style={{ color: 'black', fontSize: '20px', cursor: 'pointer', marginRight: '10px' }} onClick={() => setIsKaryawanModalOpen(false)}></i>
         </div>
         <DataKaryawan onSelectKaryawan={handleKaryawanSelect} filterOrganisasi={filterOrganisasi} />
       </Modal>

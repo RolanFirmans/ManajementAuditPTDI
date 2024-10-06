@@ -206,12 +206,17 @@ const GetSearchFile = async (req, res) => {
 // const upload = multer({ storage: storage });
 
 const UploadNewFile = async (req, res) => {
-  const { description, auditeeId } = req.body; // Asumsikan auditeeId dikirim dari client
+  const { description, auditeeId } = req.body; // Ambil auditeeId dari body
   const file = req.file;
 
   if (!file) {
     console.log("No file uploaded by the client.");
     return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  if (!auditeeId) {
+    console.log("No auditeeId provided.");
+    return res.status(400).json({ error: "No auditeeId provided" });
   }
 
   try {
@@ -224,9 +229,8 @@ const UploadNewFile = async (req, res) => {
       return res.status(404).json({ error: "Auditee not found" });
     }
 
-    const TMAUDEVD = result1.rows[0];
-    const key3 = AUDIT.TMAUDEVD.i_audevd;
-    console.log(`I_AUDEVD found: ${key3}`);
+    const i_audevd = result1.rows[0].i_audevd;
+    console.log(`I_AUDEVD found: ${i_audevd}`);
 
     const fileName = file.originalname;
     const filePath = file.path;
@@ -239,6 +243,12 @@ const UploadNewFile = async (req, res) => {
     `;
     console.log("Inserting new file into AUDIT.TMAUDEVDFILE");
     const result2 = await pool.query(query2, [fileName, description]);
+
+    if (result2.rows.length === 0) {
+      console.log("Failed to insert file.");
+      return res.status(500).json({ error: "Failed to insert file" });
+    }
+
     const generatedKey = result2.rows[0].i_audevfile;
     console.log(`File inserted with I_AUDEVDFILE: ${generatedKey}`);
 
@@ -246,16 +256,17 @@ const UploadNewFile = async (req, res) => {
       INSERT INTO AUDIT.TMAUDEVDFILEDTL (I_AUDEVD, I_AUDEVDFILE)
       VALUES ($1, $2);
     `;
-    console.log(`Linking file with I_AUDEVD: ${key3}`);
-    await pool.query(query3, [key3, generatedKey]);
+    console.log(`Linking file with I_AUDEVD: ${i_audevd}`);
+    await pool.query(query3, [i_audevd, generatedKey]);
 
     console.log("Upload New File berhasil.");
-    res.status(200).json({ message: "Upload New File berhasil", data: result2.rows });
+    res.status(200).json({ message: "Upload New File berhasil", data: { i_audevfile: generatedKey } });
   } catch (error) {
     console.error("Error executing query", error.stack);
     res.status(500).json({ error: "Terjadi kesalahan pada server" });
   }
 };
+
 
 
 

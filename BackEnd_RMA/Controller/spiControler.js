@@ -374,6 +374,36 @@ const updateStatus = async (req, res) => {
   }
 };
 
+// Delete Data SPI
+
+const DeleteDataSPI = async (req, res) => {
+  const i_audevd = req.params.i_audevd;
+  console.log('Received delete request for i_audevd:', i_audevd);
+
+  if (!i_audevd) {
+    return res.status(400).json({ error: 'i_audevd tidak valid' });
+  }
+
+  const query = 'DELETE FROM AUDIT.tmaudevd WHERE i_audevd = $1 RETURNING *';
+
+  try {
+    const result = await pool.query(query, [i_audevd]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Data karyawan tidak ditemukan' });
+    }
+
+    const deletedKaryawan = result.rows[0];
+    res.status(200).json({ 
+      message: 'Data karyawan berhasil dihapus',
+      data: deletedKaryawan
+    });
+  } catch (error) {
+    console.error('Error saat menghapus karyawan:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan saat menghapus data karyawan' });
+  }
+};
+
 // -----------------------------------------------------------------------------
 // DETAIL PROCESSING DATA EVIDENCE AFTER STATUS COMPLETE ADMIN AUDIT IT
 
@@ -831,5 +861,6 @@ module.exports = {
   GetEvidenceParkerRussel,
   GetLastUpdate,
   GetSumary,
+  DeleteDataSPI,
 }
 

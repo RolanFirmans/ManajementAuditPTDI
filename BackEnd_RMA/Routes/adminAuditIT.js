@@ -12,6 +12,7 @@ const { CreateKomen } = require('../Controller/adminAuditControler.js');
 const { GetReviewEvidence } = require('../Controller/adminAuditControler.js');
 const { GetBalasanReviewEvidence } = require('../Controller/adminAuditControler.js');
 const { CreateKomenBaru } = require('../Controller/adminAuditControler.js');
+const { DeleteDataAdminIT} = require('../Controller/adminAuditControler.js');
 const router = express.Router();
 
 const corsOptions = {
@@ -36,4 +37,5 @@ router.post('/create-koment', CreateKomen);
 router.get('/menampilkan-review-evidence', GetReviewEvidence);
 router.get('/menampilkan-balasan-review-evidence-admin-audit', GetBalasanReviewEvidence)
 router.post('/create-koment-baru', CreateKomenBaru)
+router.delete('/delete-evidence/:i_audevd', DeleteDataAdminIT)
 module.exports = router;
