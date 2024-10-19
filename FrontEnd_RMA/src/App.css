@@ -956,6 +956,11 @@ button {
   margin-top: -520px;
 }
 
+.entries-auditee{
+  font-size: 14px;
+  margin-top: -360px;
+}
+
 /* entries admin */
 
 /* end entries admin */
@@ -975,6 +980,17 @@ button {
   margin-top: 250px;
 }
 
+.pagination_Karyawan{
+  display: inline-block;
+  margin-top: 500px;
+  margin-left: 300px;
+}
+
+.pagination-auditee{
+  display: inline-block;
+  margin-top: 300px;
+  margin-left: 300px;
+}
 /* Pagnation-admin */
 .pagination-admin {
   display: inline-block;

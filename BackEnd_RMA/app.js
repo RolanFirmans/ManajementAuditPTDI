@@ -32,11 +32,11 @@ pool.connect((err, client, release) => {
 
 const auditLogin = require('./Routes/login');
 const auditRoutes = require('./Routes/audit');
-const auditAdmin = require('./Routes/admin');
+const AdminRoutes = require('./Routes/AdminRoutes');
 const Auditee = require('./Routes/auditee')
 
 // SPI
-const auditSpi = require('./Routes/spi')
+const SpiRoutes = require('./Routes/SpiRoutes')
 
 // ADMIN AUDIT IT
 const AdminauditIt = require('./Routes/adminAuditIT');
@@ -52,10 +52,10 @@ app.use(express.json())
 
 app.use("/Login", auditLogin)
 app.use("/Data", auditRoutes )
-app.use("/Admin", auditAdmin)
+app.use("/Admin", AdminRoutes)
 
 // SPI
-app.use("/SPI", auditSpi)
+app.use("/SPI", SpiRoutes)
 
 // ADMIN AUDIT IT
 app.use("/AuditIT", AdminauditIt)

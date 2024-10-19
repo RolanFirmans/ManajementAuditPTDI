@@ -349,7 +349,7 @@ const GetAuditee = async (orderNo, i_audevd_aud) => {
 // MENAMPILKAN DATA REMARKS BY AUDITEE START :
 const fetchRemarks = async (key) => {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/selected-remarks-auditee`, {
+    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/selected-remarks-auditee`, {
       params: { key: key }
     });
     if (response.data && response.data.payload && response.data.payload.data && response.data.payload.data.length > 0) {
@@ -564,8 +564,8 @@ useEffect(() => {
           showQuickJumper={false}
         />
       </div>
-{/* Handle Edit  */}
-<Modal
+      {/* Handle Edit  */}
+      <Modal
         isOpen={isModalOpen}
         onRequestClose={() => setIsModalOpen(false)}
         contentLabel="Edit User Modal"
