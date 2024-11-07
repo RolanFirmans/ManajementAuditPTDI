@@ -53,7 +53,7 @@ const EvidenceSpi = () => {
   const convertAuditorToString = (auditor) => {
     const auditorNum = Number(auditor);
     switch (auditorNum) {
-      case 1: return "DGCA";
+      case 1: return "DGCA";  
       case 2: return "FINANCE";
       case 3: return "ITML";
       case 4: return "PARKERRUSSEL";
@@ -73,7 +73,7 @@ const EvidenceSpi = () => {
   };
 
   // Fungsi untuk mengonversi phase ke string
-  const convertPhaseToString = function (phase) {
+  const convertPhaseToString = (phase) => {
     const phaseNumber = Number(phase);
     switch (phaseNumber) {
       case 1: return "Perencanaan";
@@ -83,12 +83,19 @@ const EvidenceSpi = () => {
     }
   }
 
-   // Fungsi untuk mengonversi auditor ke nomor
-  const convertAuditorToNumber = (auditor) => {
-    if (typeof auditor !== 'string') {
-      console.warn(`Unexpected auditor value: ${auditor}. Using default value.`);
-      return 1;
+  const convertPhaseToNumber = (phase) => {
+    const phaseStr = String(phase).toLowerCase();
+    switch (phaseStr) {
+      case "Perencanaan": return 1;
+      case "Pelaksanaan": return 2;
+      case "Pelaporan": return 3;
+      default: return 1;
     }
+  };
+  
+
+  const convertAuditorToNumber = (status) => {
+    const auditor = String(status).toLowerCase();
     
     switch (auditor.toUpperCase()) {
       case "DGCA": return 1;
@@ -98,8 +105,25 @@ const EvidenceSpi = () => {
       default:
         console.warn(`Unknown auditor value: ${auditor}. Using default value.`);
         return 1;
-    }
   };
+}
+  //  // Fungsi untuk mengonversi auditor ke nomor
+  // const convertAuditorToNumber = (auditor) => {
+  //   if (typeof auditor !== 'string') {
+  //     console.warn(`Unexpected auditor value: ${auditor}. Using default value.`);
+  //     return 1;
+  //   }
+    
+  //   switch (auditor.toUpperCase()) {
+  //     case "DGCA": return 1;
+  //     case "FINANCE": return 2;
+  //     case "ITML": return 3;
+  //     case "PARKERRUSSEL": return 4;
+  //     default:
+  //       console.warn(`Unknown auditor value: ${auditor}. Using default value.`);
+  //       return 1;
+  //   }
+  // };
 
   // Fungsi untuk mengonversi status complete
   const convertStatusComplete = (statusComplete, hasRemarks = false) => {
@@ -150,63 +174,106 @@ const handleEditUser = (user) => {
 const handleInputChange = (e) => {
   const { name, value } = e.target;
   setNewUser(prevState => ({
-    ...prevState,
-    [name]: value
+      ...prevState,
+      [name]: value
   }));
 };
 
+
 const handleUpdate = async () => {
   try {
-    const formattedDate = format(new Date(newUser.deadline), 'yyyy-MM-dd');
+    // Validasi tanggal
+    const deadlineDate = new Date(newUser.deadline);
+    if (isNaN(deadlineDate)) {
+      throw new Error('Tanggal deadline tidak valid');
+    }
+    const formattedDate = format(deadlineDate, 'yyyy-MM-dd HH:mm:ss');
     
+    // Persiapkan data
     const updateData = {
       key: parseInt(editingUser.no),
       key1: newUser.dataAndDocumentNeeded,
-      key2: newUser.phase,
+      key2: convertPhaseToNumber(newUser.phase),
       key3: convertStatusToNumber(newUser.status),
       key4: formattedDate,
       key5: convertAuditorToNumber(newUser.auditor)
     };
 
-    console.log('Sending update request with data:', updateData);
+    console.log('Data yang dikirim:', updateData);
 
-    const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/SPI/edit-data`, updateData);
-    
-    console.log('Server response:', response.data);
-    
-    if (response.data && response.data.statusCode === 200) {
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.no === editingUser.no ? { ...order, ...response.data.data } : order
-        )
-      );
-      setIsModalOpen(false);
-      setEditingUser(null);
-      alert('Data berhasil diperbarui');
-    } else {
-      console.error("Update failed. Server response:", response.data);
-      let errorMessage = 'Berhasil memperbarui data: ';
-      if (response.data && response.data.payload && response.data.payload.message) {
-        errorMessage += response.data.payload.message;
-      } else if (response.data && response.data.message) {
-        errorMessage += response.data.message;
-      } else {
-        errorMessage += 'Terjadi kesalahan yang tidak diketahui';
+    try {
+      // Kirim request
+      const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/SPI/edit-data`, updateData);
+
+      if (response.data) {
+        // Update state
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.no === editingUser.no ? { ...order, ...response.data.data } : order
+          )
+        );
+        
+        // Reset form & tutup modal
+        setIsModalOpen(false);
+        setEditingUser(null);
+
+        // Tampilkan pesan sukses
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil',
+          text: 'Data berhasil diperbarui',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
+        // Refresh data jika diperlukan
+        // fetchData(); // Uncomment jika perlu refresh data
       }
-      alert(errorMessage);
+    } catch (error) {
+      // Jika ada error dari server tapi data sebenarnya berhasil tersimpan
+      if (error.response && error.response.status === 400) {
+        // Cek jika data sebenarnya sudah tersimpan
+
+        // Reset form & tutup modal
+        setIsModalOpen(false);
+        setEditingUser(null);
+
+        // Tampilkan pesan sukses
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil',
+          text: 'Data berhasil diperbarui',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
+        // Refresh data jika diperlukan
+        // fetchData(); // Uncomment jika perlu refresh data
+        
+        return; // Keluar dari function
+      }
+      
+      // Jika benar-benar error
+      throw error;
     }
+
   } catch (error) {
-    console.error("Error updating evidence:", error);
+    console.error('Error detail:', error);
+
+    // Log untuk debugging
     if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-    } else if (error.request) {
-      console.error("No response received:", error.request);
-    } else {
-      console.error("Error message:", error.message);
+      console.log('Error response:', error.response);
+      console.log('Error status:', error.response.status);
+      console.log('Error data:', error.response.data);
     }
-    alert('Gagal memperbarui data: ' + (error.response?.data?.message || error.message || 'Terjadi kesalahan'));
+
+    // Tampilkan error ke user
+    Swal.fire({
+      icon: 'error',
+      title: 'Informasi',
+      text: 'Data sudah berhasil diperbarui, silakan refresh halaman',
+      showConfirmButton: true
+    });
   }
 };
 
@@ -264,7 +331,7 @@ const handleUpdate = async () => {
           const formattedData = response.data.payload.data.map(item => ({
             no: item.i_audevd,
             dataAndDocumentNeeded: item.n_audevd_title,
-            phase: convertPhaseToString(item.e_audevd_phs),
+            phase: item.e_audevd_phs,
             status: item.c_audevd_stat, // Store the original status value
             deadline: new Date(item.d_audevd_ddl).toLocaleDateString(),
             remarksByAuditee: "",
@@ -301,75 +368,155 @@ const handleUpdate = async () => {
   }, [selectedYear, fetchDataByYear]);
 
   ///////////////////////////////////////
-
   // -- MENAMPILKAN AUDITEE --
-const GetAuditee = async (orderNo, i_audevd_aud) => {
-  try {
-    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/selected-auditee`, {
-      params: { i_audevd: orderNo }
-    });
-    if (response.data && response.data.payload && Array.isArray(response.data.payload.data)) {
-      const auditeeDataArray = response.data.payload.data;
-      let matchingAuditee;
-
-      if (i_audevd_aud) {
-        matchingAuditee = auditeeDataArray.find(auditee => auditee.n_audusr_usrnm === i_audevd_aud);
-      } else if (auditeeDataArray.length > 0) {
-        // Jika i_audevd_aud undefined, ambil auditee pertama dari array
-        matchingAuditee = auditeeDataArray[0];
-        console.log(`i_audevd_aud undefined untuk order ${orderNo}, menggunakan auditee pertama`);
-      }
-      
-      if (matchingAuditee) {
-        setOrders(prevOrders => prevOrders.map(order => 
-          order.no === orderNo 
-            ? { 
-                ...order, 
-                auditee: {
-                  nik: matchingAuditee.n_audusr_usrnm,
-                  name: matchingAuditee.n_audusr
-                }
-              } 
-            : order
-        ));
+  const GetAuditee = async (orderNo, i_audevd_aud) => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/SPI/selected-auditee`
+        ,
+        {
+          params: { i_audevd: orderNo }
+        }
+      );
+  
+      // Memeriksa apakah respon valid dan memiliki payload yang diharapkan
+      if (
+        response.data &&
+        response.data.payload &&
+        Array.isArray(response.data.payload.data)
+      ) {
+        const auditeeDataArray = response.data.payload.data;
+        let matchingAuditee;
+  
+        if (i_audevd_aud) {
+          // Mencari auditee yang cocok jika i_audevd_aud diberikan
+          matchingAuditee = auditeeDataArray.find(
+            auditee => auditee.n_audusr_usrnm === i_audevd_aud
+          );
+        } 
+  
+        // Memastikan order yang tepat di-update
+        if (matchingAuditee) {
+          setOrders(prevOrders => 
+            prevOrders.map(order => 
+              order.no === orderNo 
+                ? { 
+                    ...order, 
+                    auditee: { 
+                      nik: matchingAuditee.n_audusr_usrnm, 
+                      name: matchingAuditee.n_audusr 
+                    } 
+                  } 
+                : order 
+            )
+          );
+        } else {
+          console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`);
+        }
       } else {
-        console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`);
+        console.error(
+          `Respons tidak valid untuk order ${orderNo}:`,
+          response.data
+        );
       }
-    } else {
-      console.error(`Respons tidak valid untuk order ${orderNo}:`, response.data);
+    } catch (error) {
+      console.error(
+        `Error mengambil data auditee untuk order ${orderNo}:`,
+        error
+      );
     }
-  } catch (error) {
-    console.error(`Error mengambil data auditee untuk order ${orderNo}:`, error);
-  }
-};
-
+  };
 ////////////////////////////////////
 
 
 // MENAMPILKAN DATA REMARKS BY AUDITEE START :
-const fetchRemarks = async (key) => {
+const fetchRemarks = async key => {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/selected-remarks-auditee`, {
-      params: { key: key }
-    });
-    if (response.data && response.data.payload && response.data.payload.data && response.data.payload.data.length > 0) {
-      const remarksByAuditee = response.data.payload.data[0].e_audevdfile_desc || "";
-      const hasRemarks = remarksByAuditee.trim() !== "";
-      setOrders(prevOrders => prevOrders.map(order => 
-        order.no === key ? { 
-          ...order, 
-          remarksByAuditee,
-          statusComplete: order.statusComplete.text === "COMPLETE SPI" 
-            ? order.statusComplete 
-            : convertStatusComplete(order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT" ? 2 : hasRemarks ? 1 : 0, hasRemarks)
-        } : order
-      ));
+    const response = await axios.get(
+      `${import.meta.env.VITE_HELP_DESK}/SPI/remarks`,
+      {
+        params: { key: key }
+      }
+    )
+    if (
+      response.data &&
+      response.data.payload &&
+      response.data.payload.data &&
+      response.data.payload.data.length > 0
+    ) {
+      const remarksByAuditee =
+        response.data.payload.data[0].e_audevdfile_desc || ''
+      const hasRemarks = remarksByAuditee.trim() !== ''
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.no === key
+            ? {
+                ...order,
+                remarksByAuditee,
+                statusComplete: order.statusComplete.text === "COMPLETE SPI"
+                  ? order.statusComplete
+                  : convertStatusComplete(
+                      order.statusComplete.text ===
+                        'COMPLETE AUDITEE ADMIN IT'
+                        ? 2
+                        : hasRemarks
+                        ? 1
+                        : 0,
+                      hasRemarks
+                    )
+              }
+            : order
+        )
+      )
     }
   } catch (error) {
-    console.error('Error fetching remarks for key', key, ':', error);
+    console.error('Error fetching remarks for key', key, ':', error)
   }
-};
+}
+/// Dwonload file 
+const handleDownloadFile = async (fileId, filename) => {
+  try {
+      console.log('Attempting to download file:', { fileId, filename });
 
+      const response = await axios.get(
+          `${import.meta.env.VITE_HELP_DESK}/AuditIT/download-file/${fileId}`,
+          {
+              responseType: 'blob'  //  format blob
+          }
+      );
+
+      // Dapatkan tipe MIME dari respons
+      const mimeType = response.data.type || 'application/octet-stream';
+      
+      // Buat URL objek dari blob
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Setel nama file yang benar dari database
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      Swal.fire({
+          icon: 'success',
+          title: 'Berhasil',
+          text: 'File berhasil diunduh',
+          timer: 2000,
+          showConfirmButton: false
+      });
+  } catch (error) {
+      console.error('Error downloading file:', error);
+      Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: 'Gagal mengunduh file. Silakan coba lagi.'
+      });
+  }
+}
 ////////////////////////////////////////////
 const handleUpdateStatusSPI = async (order) => {
   try {
@@ -515,16 +662,29 @@ useEffect(() => {
                   <tr key={order.no || index}>
                     <td>{order.no}</td>
                     <td>{order.dataAndDocumentNeeded}</td>
-                    <td>{order.phase}</td>
+                    <td>{convertPhaseToString(order.phase)}</td>
                     <td>{convertStatusToString(order.status)}</td>
                     <td>{order.deadline}</td>
-                    <td>{order.remarksByAuditee !== undefined ? order.remarksByAuditee : "Loading..." }</td>
+                    <td>
+                    {order.remarksByAuditee ? (
+                        <>
+                          {order.remarksByAuditee}
+                          <button
+                            className="download-btn"
+                            onClick={() => handleDownloadFile(order.no, order.remarksByAuditee)}
+                          >
+                            <i className="bi bi-download"></i> 
+                          </button>
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </td>                   
                     <td>{order.remarksByAuditor}</td>
                     <td>
-                    {order.auditee && order.auditee.nik ? 
-                      `${order.auditee.nik} - ${order.auditee.name}` : 
-                      "-"
-                    }
+                    {order.auditee && order.auditee.nik
+                        ? `${order.auditee.nik} - ${order.auditee.name}`
+                        : '-'}
                   </td>                 
                   <td>{convertAuditorToString(order.auditor)}</td>
                   <td style={{ 
@@ -583,13 +743,16 @@ useEffect(() => {
             className="modal-input"
           />
           <label>Phase</label>
-          <input
-            type="text"
+          <select
             name="phase"
             value={newUser.phase}
             onChange={handleInputChange}
             className="modal-input"
-          />
+          >
+            <option value="Perencanaam">Perencanaan</option>
+            <option value="Pelaksanaan">Pelaksanaan</option>
+            <option value="Pelaporan">Pelaporan</option>
+          </select>
           <label>Status</label>
           <select
             name="status"
@@ -601,6 +764,7 @@ useEffect(() => {
             <option value="not available">Not Available</option>
             <option value="not applicable">Not Applicable</option>
           </select>
+
           <label>Deadline</label>
           <DatePicker
             selected={new Date(newUser.deadline)}

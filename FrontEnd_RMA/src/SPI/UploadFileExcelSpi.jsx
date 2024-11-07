@@ -27,72 +27,68 @@
         e.preventDefault();
     
         if (!selectedDate) {
-          Swal.fire({
-            title: "Error!",
-            text: "Silakan pilih tahun terlebih dahulu.",
-            icon: "error"
-          });
-          return;
+            Swal.fire({
+                title: "Error!",
+                text: "Silakan pilih tahun terlebih dahulu.",
+                icon: "error"
+            });
+            return;
         }
     
         if (!file || !hasExtension(file.name, [".xls", ".xlsx"])) {
-          Swal.fire({
-            title: "Error!",
-            text: "Hanya file XLS atau XLSX (Excel) yang diijinkan.",
-            icon: "error"
-          });
-          return;
+            Swal.fire({
+                title: "Error!",
+                text: "Hanya file XLS atau XLSX (Excel) yang diijinkan.",
+                icon: "error"
+            });
+            return;
         }
-      
+    
         const formData = new FormData();
         formData.append("file", file);
         const selectedYear = selectedDate.getFullYear().toString();
-        formData.append("year", selectedYear);
-        
-        console.log("Sending year:", selectedYear); // Log tahun yang dikirim
-      
+        formData.append("year", selectedYear); // Tahun yang dikirim ke backend
+    
+        console.log("Sending year:", selectedYear); // Memastikan tahun yang dikirim
+    
         try {
-          const response = await axios.post(
-            `${import.meta.env.VITE_HELP_DESK}/SPI/upload-file-excel`,
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-              onUploadProgress: (progressEvent) => {
-                const percentCompleted = Math.round(
-                  (progressEvent.loaded * 100) / progressEvent.total
-                );
-                setUploadProgress(percentCompleted);
-              },
-            }
-          );
+            const response = await axios.post(
+                `${import.meta.env.VITE_HELP_DESK}/SPI/upload-file-excel`, // Pastikan URL ini sesuai
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round(
+                            (progressEvent.loaded * 100) / progressEvent.total
+                        );
+                        setUploadProgress(percentCompleted);
+                    },
+                }
+            );
     
-          console.log("Response from server:", response.data);
+            console.log("Response from server:", response.data);
     
-          setMessage(
-            <span>
-              <i className="fa fa-check"></i>{" "}
-              <font color="green">{response.data.message}</font>
-            </span>
-          );
-          setShowMessage(true);
-          setTimeout(() => setShowMessage(false), 3000);
-          setFile(null);
-          setUploadProgress(0);
+            setMessage(<span><i className="fa fa-check"></i> <font color="green">{response.data.message}</font></span>);
+            setShowMessage(true);
+            setTimeout(() => setShowMessage(false), 3000);
+            setFile(null);
+            setUploadProgress(0);
     
-          Swal.fire({
-            title: "Good job!",
-            text: `Data berhasil di Upload untuk tahun ${selectedYear}`,
-            icon: "success"
-          });
+            Swal.fire({
+                title: "Good job!",
+                text: `Data berhasil di Upload untuk tahun ${selectedYear}`,
+                icon: "success"
+            });
     
         } catch (error) {
-          console.error("Error during upload:", error.response?.data || error.message);
-          setMessage(<font color="red">ERROR: {error.response?.data.error || 'Tidak dapat mengunggah file'}</font>);
-          setShowMessage(true);
+            console.error("Error during upload:", error.response?.data || error.message);
+            setMessage(<font color="red">ERROR: {error.response?.data.error || 'Tidak dapat mengunggah file'}</font>);
+            setShowMessage(true);
         }
-      };
+    };
+    
     
 
       const handleDragOver = (e) => {

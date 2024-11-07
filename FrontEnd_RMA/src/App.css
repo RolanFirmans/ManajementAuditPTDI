@@ -907,13 +907,20 @@ button {
 /* Edit data auditee di admin audit it */
 .evidence-modal-overlay {
   position: fixed;
+  pointer-events: auto;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5); 
-  z-index: 999; 
+  z-index: 9999; 
 }
+
+.evidence-modal-overlay.hidden {
+  pointer-events: none; /* Saat modal tidak aktif */
+}
+
+
 .evidence-modal {
   position: fixed;
   top: 50%;
@@ -926,6 +933,8 @@ button {
   width: 800px;
   max-height: 90vh;
   overflow-y: auto; 
+  z-index: 10000; 
+
 }
 
 
@@ -957,8 +966,9 @@ button {
 }
 
 .entries-auditee{
+  pointer-events: none ;
   font-size: 14px;
-  margin-top: -360px;
+  margin-top: -280px;
 }
 
 /* entries admin */
@@ -988,7 +998,7 @@ button {
 
 .pagination-auditee{
   display: inline-block;
-  margin-top: 300px;
+  margin-top: 50px;
   margin-left: 300px;
 }
 /* Pagnation-admin */
@@ -1074,7 +1084,7 @@ button {
 
 /* Start Side bar */
 .menu-bar{
-  height: 140vh;
+  height: 170vh;
   position: relative;
   display: flex;
   flex-direction: column;

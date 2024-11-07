@@ -3,6 +3,7 @@ import axios from "axios";
 import "../App.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import Swal from 'sweetalert2'; // Pastikan Anda sudah mengimpor SweetAlert
 
 const UploadFileExcelSpi = () => {
   const [file, setFile] = useState(null);
@@ -11,90 +12,88 @@ const UploadFileExcelSpi = () => {
   const [showMessage, setShowMessage] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dragOver, setDragOver] = useState(false);
-  const [description, setDescription] = useState(""); // Added state for description
-
-  const handleFileChange = async (e) => {
-    const selectedFile = e.target.files[0];
-    setFile(selectedFile);
-
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-
-    try {
-      const response = await fetch(
-        "http://localhost:3100/SPI/upload-file-excel",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const result = await response.json();
-      console.log("File saved successfully:", result);
-      alert("Data sudah terupload!");
-    } catch (error) {
-      console.error("There was a problem with the fetch operation:", error);
-    }
-  };
+  const [description, setDescription] = useState("");
 
   const hasExtension = (fileName, exts) => {
-    return new RegExp(`(${exts.join("|").replace(/\./g, "\\.")})$`).test(
-      fileName
-    );
+    return new RegExp(`(${exts.join("|").replace(/\./g, "\\.")})$`).test(fileName);
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && hasExtension(selectedFile.name, [".xls", ".xlsx"])) {
+      setFile(selectedFile);
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Format tidak valid",
+        text: "Hanya file XLS atau XLSX yang diijinkan.",
+      });
+      e.target.value = ''; // Clear the file input
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file || !hasExtension(file.name, [".xls", ".xlsx"])) {
-      alert("Hanya file XLS atau XLSX (Excel) yang diijinkan.");
-      return;
+    // Validasi apakah file dipilih
+    if (!file) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Silakan pilih file sebelum mengupload!',
+      });
+      return; // Hentikan eksekusi lebih lanjut jika tidak ada file
     }
 
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("description", description); // Include description in form data
+    formData.append('file', file);
+    formData.append('description', description); // Include description in form data
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_HELP_DESK}/SPI/upload-file-excel-spi`,
+        'http://localhost:3100/SPI/upload-file-excel',
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            'Content-Type': 'multipart/form-data', // Necessary for FormData
           },
           onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadProgress(percentCompleted);
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted); // Update upload progress
           },
         }
       );
 
-      setMessage(
-        <span>
-          <i className="fa fa-check"></i>{" "}
-          <font color="green">{response.data.message}</font>
-        </span>
-      );
-      setShowMessage(true);
-      setTimeout(() => setShowMessage(false), 3000);
-      setFile(null);
-      setUploadProgress(0);
+      // Memeriksa respons dari server
+      if (response.status === 200 || response.status === 201) {
+        Swal.fire({
+          title: "Berhasil",
+          text: response.data.message,
+          icon: "success",
+        });
+        // Resetting states
+        setFile(null);
+        setDescription("");
+        setUploadProgress(0);
+      } else {
+        // Jika server mengembalikan respons lainnya yang muncul
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Something went wrong during the upload!",
+        });
+      }
     } catch (error) {
-      setMessage(
-        <font color="red">
-          ERROR: {error.response?.data.error || "unable to upload files"}
-        </font>
-      );
-      setShowMessage(true);
+      console.error('Error uploading file:', error); // Logging error
+      const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat mengupload file.';
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: errorMessage, // Tampilkan pesan kesalahan yang tepat
+      });
     }
   };
 
+  // Handle drag events
   const handleDragOver = (e) => {
     e.preventDefault();
     setDragOver(true);
@@ -111,7 +110,11 @@ const UploadFileExcelSpi = () => {
     if (droppedFile && hasExtension(droppedFile.name, [".xls", ".xlsx"])) {
       setFile(droppedFile);
     } else {
-      alert("Hanya file XLS atau XLSX (Excel) yang diijinkan.");
+      Swal.fire({
+        icon: "error",
+        title: "Format tidak valid",
+        text: "Hanya file XLS atau XLSX yang diijinkan.",
+      });
     }
   };
 
@@ -144,7 +147,6 @@ const UploadFileExcelSpi = () => {
         </div>
         <fieldset
           className="label_side"
-          id="facnumber"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -163,7 +165,7 @@ const UploadFileExcelSpi = () => {
                 id="file"
                 className="form-control"
                 onChange={handleFileChange}
-                style={{ display: "none" }}
+                style={{ display: "none" }} // Hide input
               />
               <div
                 onClick={() => document.getElementById("file").click()}
@@ -180,6 +182,7 @@ const UploadFileExcelSpi = () => {
             <i>Format .XLS atau .XLSX (Excel)</i>
           </div>
         </fieldset>
+        
         {/* Description Field */}
         <fieldset className="label_side" id="description">
           <label className="font-medium">DESCRIPTION</label>

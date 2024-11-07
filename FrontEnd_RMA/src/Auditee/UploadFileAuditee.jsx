@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Modal from 'react-modal'
 import '../App.css'
+import Swal from 'sweetalert2'
 import UploadNewFileAuditee from './UploadNewFileAuditee'
 
 const UploadFileAuditee = () => {
@@ -44,53 +45,80 @@ const UploadFileAuditee = () => {
 
   const handleFileChange = e => setFile(e.target.files[0])
 
-  const handleSubmit = async e => {
-    e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     // Periksa apakah file dipilih
     if (!file && !selectedAuditee) {
-      alert('Silakan pilih file atau pilih file dari daftar pencarian.')
-      return
+        // Menggunakan SweetAlert untuk menampilkan pesan
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal', // Judul alert
+            text: 'Silakan pilih file atau pilih file dari daftar pencarian.', // Isi pesan
+        });
+        return; // Keluar dari fungsi jika kondisi tidak terpenuhi
     }
 
-    const formData = new FormData()
+    const formData = new FormData();
     if (file) {
-      formData.append('file', file)
+        formData.append('file', file);
     } else if (selectedAuditee) {
-      formData.append('file_path', selectedAuditee.n_audevdfile_file)
+        formData.append('file_path', selectedAuditee.n_audevdfile_file);
     }
-    formData.append('description', description)
+    formData.append('description', description);
 
     console.log('Mengirim data ke server:', {
-      description,
-      file: file ? file.name : selectedAuditee?.n_audevdfile_file
-    })
+        description,
+        file: file ? file.name : selectedAuditee?.n_audevdfile_file
+    });
 
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_HELP_DESK}/Auditee/upload-new-file`,
-        formData,
-        {
-          // Hapus Content-Type, Axios akan mengatur ini untuk FormData
-          // headers: {
-          //   "Content-Type": "multipart/form-data",
-          // },
+        const response = await axios.post(
+            `${import.meta.env.VITE_HELP_DESK}/Auditee/upload-new-file`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data', // Pastikan header ini diset ketika menggunakan FormData
+                },
+            }
+        );
+
+        // Cek apakah upload berhasil
+        if (response.status === 200 || response.status === 201) {
+            Swal.fire({
+                title: 'Good job!',
+                text: 'Data berhasil diunggah!',
+                icon: 'success',
+            });
+            handleCancel(); // Reset form setelah berhasil mengunggah
+        } else {
+            // Server mengembalikan status lain
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Something went wrong while uploading the file!',
+            });
         }
-      )
-      alert('File berhasil diunggah!')
-      handleCancel() // Reset form setelah berhasil mengunggah
     } catch (error) {
-      console.error('Error mengunggah file:', error)
-      alert(`Error: ${error.response?.data?.error || 'Terjadi kesalahan'}`)
+        console.error('Error mengunggah file:', error.response); // Log respons error
+        const errorMessage = error.response?.data?.error || 'Terjadi kesalahan saat mengunggah file.';
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: errorMessage,
+        });
     }
-  }
+};
+
 
   const handleCancel = () => {
+    console.log('Cancelling upload...')
     setFile(null)
     setSelectedAuditee(null)
     setDescription('')
     closeModal()
   }
+
 
   const handleUploadFile = () => setIsModalUpload(true)
   const handleSearchFile = () => setIsModalSearch(true)
@@ -100,6 +128,7 @@ const UploadFileAuditee = () => {
   }
 
   const closeModal = () => {
+    console.log('Closing modal...')
     setIsModalSearch(false)
     setIsModalUpload(false)
   }
@@ -158,7 +187,7 @@ const UploadFileAuditee = () => {
               : 'Tidak ada file yang dipilih'}
           </div>
         </div>
-        <div className='form-buttons'>
+    
           <button
             type='button'
             className='btnCancelAuditee'
@@ -166,10 +195,10 @@ const UploadFileAuditee = () => {
           >
             Batal
           </button>
-          <button type='submit' className='btnSaveAuditee'>
+          <button type='submit' className='btnSaveAuditee' onClick={handleSubmit}>
             Simpan
           </button>
-        </div>
+    
       </form>
 
       <Modal

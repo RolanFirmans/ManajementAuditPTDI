@@ -124,7 +124,7 @@ export default function LoginSection() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="confirmNik">Konfirmasi NIK:</label>
+            <label htmlFor="confirmNik">Password:</label>
             <input
               type="password"
               id="confirmNik"

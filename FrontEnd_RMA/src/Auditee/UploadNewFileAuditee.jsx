@@ -5,55 +5,65 @@ import { CloudDownloadOutlined } from '@ant-design/icons'
 import Swal from 'sweetalert2'
 
 const UploadFilePdf = () => {
-  const [id, setId] = useState('')
-  // const [tittle, setTittle] = useState("");  
-  const [file, setFile] = useState()
+  const [file, setFile] = useState(null) // Set file menjadi null secara default
   const [description, setDescription] = useState('')
-
   const [msg, setMsg] = useState('') // State for messages
 
   const upload = () => {
-    const formData = new FormData()
-    //   formData.append("id", id);
-    formData.append('file', file)
-    formData.append('key2', description)
-
-    axios
-      .post('http://localhost:3100/Auditee/test', formData)
-      .then(response => {
-        console.log(response)
-        if (response.data.message === 'Test created successfully') {
-          Swal.fire({
+    // Validasi apakah file telah dipilih
+    if (!file) {
+        Swal.fire({
             icon: "error",
             title: "Oops...",
-            text: "Something went wrong!"
-          });
-        } else {
-         
-          Swal.fire({
-            title: "Good job!",
-            text: "Data Berhasil Di Upload!",
-            icon: "success"
-          });
-        }
-      })
-      .catch(er => {
-        console.error(er)
-        setMsg('Error uploading file')
-      })
-  }
+            text: "Silakan pilih file sebelum mengupload!",
+        });
+        return; // Hentikan eksekusi lebih lanjut jika tidak ada file
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('key2', description);
+
+    axios
+        .post('http://localhost:3100/Auditee/test', formData)
+        .then(response => {
+            console.log('Response from server:', response.data); // Debug log
+            if (response.data.message === 'Test created successfully') {
+                Swal.fire({
+                  icon: "error",
+                  title: "Oops...",
+                  text: "Something went wrong!"
+                });
+            } else {
+                Swal.fire({
+                    title: "Good job!",
+                    text: "Data Berhasil Di Upload!",
+                    icon: "success"
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Upload error:', err);
+            Swal.fire({
+                icon: "error",
+                title: "Gagal",
+                text: "Terjadi kesalahan saat mengupload file.",
+            });
+        });
+};
+
 
   return (
     <div className='container' style={{ paddingTop: 60 }}>
       <div className='row'>
-        <h1 className='textUploadNewFile'>Upload NewFile</h1>
+        <h1 className='textUploadNewFile'>Upload New File</h1>
         <div className='col-12'>
           {/* Input file yang disembunyikan */}
           <input
             type='file'
             style={{ display: 'none' }} // Sembunyikan input
             id='fileUpload'
-            onChange={e => setFile(e.target.files[0])}
+            onChange={e => setFile(e.target.files[0])} // Set file ke state
           />
 
           {/* Ikon yang berfungsi sebagai pengganti input file */}

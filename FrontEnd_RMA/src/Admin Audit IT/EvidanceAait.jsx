@@ -130,7 +130,7 @@ const EvidenceAait = () => {
     // Kemudian, filter berdasarkan searchQuery jika ada
     if (searchQuery.trim()) {
       const searchLower = searchQuery.toLowerCase()
-      result = result.filter(order => {
+      result = result.filter(order => { 
         return [
           order.dataAndDocumentNeeded,
           order.phase,
@@ -349,57 +349,56 @@ const EvidenceAait = () => {
         {
           params: { i_audevd: orderNo }
         }
-      )
+      );
+  
+      // Memeriksa apakah respon valid dan memiliki payload yang diharapkan
       if (
         response.data &&
         response.data.payload &&
         Array.isArray(response.data.payload.data)
       ) {
-        const auditeeDataArray = response.data.payload.data
-        let matchingAuditee
-
+        const auditeeDataArray = response.data.payload.data;
+        let matchingAuditee;
+  
         if (i_audevd_aud) {
+          // Mencari auditee yang cocok jika i_audevd_aud diberikan
           matchingAuditee = auditeeDataArray.find(
             auditee => auditee.n_audusr_usrnm === i_audevd_aud
-          )
-        } else if (auditeeDataArray.length > 0) {
-          // Jika i_audevd_aud undefined, ambil auditee pertama dari array
-          matchingAuditee = auditeeDataArray[0]
-          console.log(
-            `i_audevd_aud undefined untuk order ${orderNo}, menggunakan auditee pertama`
-          )
-        }
-
+          );
+        } 
+  
+        // Memastikan order yang tepat di-update
         if (matchingAuditee) {
-          setOrders(prevOrders =>
-            prevOrders.map(order =>
-              order.no === orderNo
-                ? {
-                    ...order,
-                    auditee: {
-                      nik: matchingAuditee.n_audusr_usrnm,
-                      name: matchingAuditee.n_audusr
-                    }
-                  }
-                : order
+          setOrders(prevOrders => 
+            prevOrders.map(order => 
+              order.no === orderNo 
+                ? { 
+                    ...order, 
+                    auditee: { 
+                      nik: matchingAuditee.n_audusr_usrnm, 
+                      name: matchingAuditee.n_audusr 
+                    } 
+                  } 
+                : order 
             )
-          )
+          );
         } else {
-          console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`)
+          console.log(`Tidak ada auditee yang cocok untuk order ${orderNo}`);
         }
       } else {
         console.error(
           `Respons tidak valid untuk order ${orderNo}:`,
           response.data
-        )
+        );
       }
     } catch (error) {
       console.error(
         `Error mengambil data auditee untuk order ${orderNo}:`,
         error
-      )
+      );
     }
-  }
+  };
+  
 
   ////////////////////////////////////
 
@@ -427,7 +426,7 @@ const EvidenceAait = () => {
               ? {
                   ...order,
                   remarksByAuditee,
-                  statusComplete: order.isUpdated
+                  statusComplete: order.statusComplete.text === "COMPLETE AUDITEE ADMIN IT"
                     ? order.statusComplete
                     : convertStatusComplete(
                         order.statusComplete.text ===
@@ -579,15 +578,10 @@ const EvidenceAait = () => {
 
   // MENAMPILKAN DATA REMARKS BY AUDITEE END :
 
-  const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem)
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
-
   const handleDownloadFile = async (fileId, filename) => {
     try {
         console.log('Attempting to download file:', { fileId, filename });
+        console.log(`Attempting to download file from: http://localhost:3100/AuditIT/download-file/${fileId}`);
 
         const response = await axios.get(
             `${import.meta.env.VITE_HELP_DESK}/AuditIT/download-file/${fileId}`,
@@ -697,8 +691,9 @@ const EvidenceAait = () => {
             </tr>
           </thead>
           <tbody>
-            {currentPageData.length > 0 ? (
-              filteredOrders.map((order, index) => {
+            {filteredOrders.length > 0 ? (
+               
+              currentPageData.map((order, index) => {
                 // Cari data auditee berdasarkan `order.auditee`
                 const auditee =
                   auditeeData.find(
@@ -723,7 +718,7 @@ const EvidenceAait = () => {
                           </button>
                         </>
                       ) : (
-                        'Tidak ada file'
+                        '-'
                       )}
                     </td>
                     <td>{order.remarksByAuditor}</td>
@@ -859,12 +854,7 @@ const EvidenceAait = () => {
                 Select
               </button>
             </div>
-            <div className='entries-auditee'>
-              Showing {indexOfFirstItem + 1} to{' '}
-              {Math.min(indexOfLastItem, filteredData.length)} of{' '}
-              {filteredData.length} entries
-            </div>
-      
+
               <Pagination
                 current={currentPage}
                 total={filteredData.length}

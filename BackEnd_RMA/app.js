@@ -30,16 +30,20 @@ pool.connect((err, client, release) => {
 });
 
 
-const auditLogin = require('./Routes/login');
-const auditRoutes = require('./Routes/audit');
-const AdminRoutes = require('./Routes/AdminRoutes');
-const Auditee = require('./Routes/auditee')
+const auditLogin = require('./src/Routes/login');
+const auditRoutes = require('./src/Routes/audit');
+const AdminRoutes = require('./src/Routes/AdminRoutes');
+const Auditee = require('./src/Routes/auditee')
+
 
 // SPI
-const SpiRoutes = require('./Routes/SpiRoutes')
+const SpiRoutes = require('./src/Routes/SpiRoutes')
 
 // ADMIN AUDIT IT
-const AdminauditIt = require('./Routes/adminAuditIT');
+const AdminauditIt = require('./src/Routes/adminAuditIT');
+
+// export ecxcel
+
 
 const bodyParser = require('body-parser');
 
@@ -62,6 +66,9 @@ app.use("/AuditIT", AdminauditIt)
 
 // AUDITEE
 app.use("/Auditee", Auditee)
+
+// EXPORT EXCEL
+
 
 app.listen(port, () => {
   console.log(`Server has been running in http://${host}:${port}`);

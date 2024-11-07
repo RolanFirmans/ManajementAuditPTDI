@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 import axios from 'axios'
 import { Pagination } from 'antd'
 import { useMemo } from 'react'
+import Swal from 'sweetalert2';
 import '../App.css'
 
 import UploadFileAuditee from '../Auditee/UploadFileAuditee'
@@ -156,10 +157,10 @@ const EvidenceAuditee = () => {
     setIsModalUpload(true)
   }
 
-  const handleDeleteUser = user => {
-    setUserToDelete(user)
-    setIsDeleteModalOpen(true)
-  }
+  // const handleDeleteUser = user => {
+  //   setUserToDelete(user)
+  //   setIsDeleteModalOpen(true)
+  // }
 
   const confirmDeleteUser = () => {
     const updatedOrders = orders.filter(order => order.no !== userToDelete.no)
@@ -383,13 +384,7 @@ const EvidenceAuditee = () => {
           matchingAuditee = auditeeDataArray.find(
             auditee => auditee.n_audusr_usrnm === i_audevd_aud
           )
-        } else if (auditeeDataArray.length > 0) {
-          // Jika i_audevd_aud undefined, ambil auditee pertama dari array
-          matchingAuditee = auditeeDataArray[0]
-          console.log(
-            `i_audevd_aud undefined untuk order ${orderNo}, menggunakan auditee pertama`
-          )
-        }
+        } 
 
         if (matchingAuditee) {
           setOrders(prevOrders =>
@@ -507,6 +502,61 @@ const EvidenceAuditee = () => {
     }
   }
 
+  const handleDeleteFileAuditee = async (no) => {
+    console.log('Attempting to delete user with no:', no);
+    if (!no) {
+      Swal.fire('Error', 'Invalid order number', 'error');
+      return;
+    }
+  
+    const swalWithBootstrapButtons = Swal.mixin({
+      customClass: {
+        confirmButton: "btnConfirmAdmin",
+        cancelButton: "btnCancelAdmin"
+      },
+      buttonsStyling: false
+    });
+  
+    const result = await swalWithBootstrapButtons.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true
+    });
+  
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Auditee/delete-file/${no}`);
+        
+        if (response.status === 200) {
+          console.log('Evidence berhasil dihapus:', response.data);
+          setOrders(prevOrders => prevOrders.filter(order => order.no !== no));
+  
+          swalWithBootstrapButtons.fire({
+            title: "Deleted!",
+            text: "Evidence telah berhasil dihapus.",
+            icon: "success"
+          });
+        } else {
+          throw new Error(response.data.message || 'Gagal menghapus evidence');
+        }
+      } catch (error) {
+        console.error('Error saat menghapus evidence:', error);
+        Swal.fire('Error', `Gagal menghapus evidence: ${error.response?.data?.message || error.message}`, 'error');
+      }
+    } else if (result.dismiss === Swal.DismissReason.cancel) {
+      swalWithBootstrapButtons.fire({
+        title: "Cancelled",
+        text: "Evidence tidak jadi dihapus.",
+        icon: "error"
+      });
+    }
+  };
+  
+
   return (
     <div className='evidence-content'>
       <h2>Data Evidence</h2>
@@ -548,7 +598,7 @@ const EvidenceAuditee = () => {
           </thead>
           <tbody>
             {filteredOrders.length > 0 ? (
-              filteredOrders.map((order, index) => {
+              currentPageData.map((order, index) => {
                 // Cari data auditee berdasarkan `order.auditee`
                 return (
                   <tr key={order.no || index}>
@@ -558,10 +608,20 @@ const EvidenceAuditee = () => {
                     <td>{order.status}</td>
                     <td>{order.deadline}</td>
                     <td>
-                      {order.remarksByAuditee !== undefined
-                        ? order.remarksByAuditee
-                        : 'Loading...'}
-                    </td>
+                    {order.remarksByAuditee ? (
+                        <>
+                          {order.remarksByAuditee}
+                          <button
+                            className="download-btn"
+                            onClick={() => handleDeleteFileAuditee(order.no, order.remarksByAuditee)}
+                          >
+                            <i className="bi-trash"></i> 
+                          </button>
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </td> 
                     <td>{order.remarksByAuditor}</td>
                     <td>
                       {order.auditee && order.auditee.nik
