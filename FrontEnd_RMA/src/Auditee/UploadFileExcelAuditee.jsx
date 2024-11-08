@@ -3,7 +3,7 @@ import axios from "axios";
 import "../App.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import Swal from 'sweetalert2'; // Pastikan Anda sudah mengimpor SweetAlert
+import Swal from 'sweetalert2'; 
 
 const UploadFileExcelSpi = () => {
   const [file, setFile] = useState(null);

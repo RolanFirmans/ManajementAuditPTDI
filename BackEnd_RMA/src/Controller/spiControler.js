@@ -121,7 +121,7 @@ class spiControler {
         
         const validatedPhase = parseInt(key2);
         if (isNaN(validatedPhase) || validatedPhase < 1 || validatedPhase > 3) {
-          throw new Error('Status tidak valid');
+          throw new Error('Phase tidak valid');
         }
 
         const validatedStatus = parseInt(key3);
@@ -133,9 +133,9 @@ class spiControler {
         if (isNaN(validatedAuditor) || validatedAuditor < 1 || validatedAuditor > 4) {
           throw new Error('Auditor tidak valid');
         }
-        // Pastikan key2 dan key1 bernilai string
+      
         if (typeof key1 !== 'string') {
-       throw new Error('Title dan phase harus berupa string.');
+       throw new Error('Title harus berupa string.');
        }
     
         // Validasi tanggal
@@ -145,21 +145,21 @@ class spiControler {
         }
 
         const existingData = await SpiModel.updateEvidenceSPI(validatedKey); // Mencari data dengan key yang diberikan
-if (!existingData) {
-    throw new Error('Data tidak ditemukan');
-}
+        if (!existingData) {
+            throw new Error('Data tidak ditemukan');
+        }
 
-// Jika data ditemukan, lanjutkan proses update
-    const result = await SpiModel.updateEvidenceSPI({
-        key1,
-        validatedPhase,
-        validatedStatus,
-        validatedDate,
-        validatedAuditor,
-        validatedKey
-    });
+        // Jika data ditemukan, lanjutkan proses update
+            const result = await SpiModel.updateEvidenceSPI({
+                key1,
+                validatedPhase,
+                validatedStatus,
+                validatedDate,
+                validatedAuditor,
+                validatedKey
+            });
 
-      
+              
 
         if (result.length === 0) {
             throw new Error('Data tidak ditemukan');

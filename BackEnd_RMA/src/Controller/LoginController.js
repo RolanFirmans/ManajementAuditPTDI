@@ -1,15 +1,14 @@
 require('dotenv').config();
-
 const jwt = require('jsonwebtoken');
 const pool = require('../../utils/dbaudit');
 
 const loginUser = async (req, res) => {
-  const { nik, confirmNik } = req.body;
+  const { nik, password } = req.body;
 
   try {
     // Pastikan kedua NIK tidak kosong
-    if (!nik || !confirmNik) {
-      return res.status(400).json({ error: 'Kedua NIK harus diisi' });
+    if (!nik || !password) {
+      return res.status(401).json({ error: 'Kedua NIK dan password  harus diisi' });
     }
 
     // Cari user berdasarkan NIK pertama
@@ -25,10 +24,10 @@ const loginUser = async (req, res) => {
 
     const user = result.rows[0];
 
-    // Verifikasi NIK konfirmasi
-    // Asumsikan NIK konfirmasi disimpan dalam kolom i_audusr_confirm_nik
-    if (user.n_audusr_usrnm !== confirmNik) {
-      return res.status(401).json({ error: 'Password konfirmasi tidak cocok' });
+    // Verifikasi password
+    // Ganti logika untuk memverifikasi 'confirmNik' jika harus memeriksa kolom yang sesuai
+    if (user.n_audusr_usrnm !== password) {
+      return res.status(401).json({ error: 'Password salah' }); // Ubah pesan kesalahan di sini
     }
 
     // Pastikan JWT_SECRET terisi
@@ -48,7 +47,7 @@ const loginUser = async (req, res) => {
     );
 
     // Kirim respons dengan token
-    res.json({
+    return res.json({
       message: 'Login berhasil',
       token,
       user: {
@@ -61,7 +60,7 @@ const loginUser = async (req, res) => {
 
   } catch (error) {
     console.error('Error saat login:', error);
-    res.status(500).json({ error: 'Terjadi kesalahan saat login' });
+    return res.status(500).json({ error: 'Terjadi kesalahan saat login' });
   }
 };
 

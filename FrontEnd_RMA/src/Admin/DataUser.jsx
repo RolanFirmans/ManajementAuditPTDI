@@ -544,10 +544,8 @@ const DataUser = () => {
             className='modal-select'
           >
             <option value=''>Pilih Peran</option>
-            <option value='ADMIN'>Admin</option>
             <option value='SPI'>SPI</option>
             <option value='AUDITEE'>Auditee</option>
-            <option value='AUDITOR'>Auditor</option>
             <option value='ADMIN_IT'>Admin IT</option>
           </select>
           <label>NIK</label>

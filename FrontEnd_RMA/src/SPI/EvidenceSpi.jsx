@@ -74,8 +74,8 @@ const EvidenceSpi = () => {
 
   // Fungsi untuk mengonversi phase ke string
   const convertPhaseToString = (phase) => {
-    const phaseNumber = Number(phase);
-    switch (phaseNumber) {
+    const phaseNum = Number(phase);
+    switch (phaseNum) {
       case 1: return "Perencanaan";
       case 2: return "Pelaksanaan";
       case 3: return "Pelaporan";
@@ -86,12 +86,13 @@ const EvidenceSpi = () => {
   const convertPhaseToNumber = (phase) => {
     const phaseStr = String(phase).toLowerCase();
     switch (phaseStr) {
-      case "Perencanaan": return 1;
-      case "Pelaksanaan": return 2;
-      case "Pelaporan": return 3;
+      case "perencanaan": return 1;
+      case "pelaksanaan": return 2;
+      case "pelaporan": return 3;
       default: return 1;
     }
   };
+  
   
 
   const convertAuditorToNumber = (status) => {
@@ -157,15 +158,16 @@ const EvidenceSpi = () => {
   };
 
  // Fungsi untuk mengedit user
-const handleEditUser = (user) => {
+ const handleEditUser = (user) => {
+  console.log('Data user yang akan diedit:', user);
   setEditingUser(user);
   setNewUser({
     no: user.no,
     dataAndDocumentNeeded: user.dataAndDocumentNeeded,
-    phase: user.phase,
-    status: user.status,
+    phase: convertPhaseToString(user.phase), // Konversi phase ke string untuk ditampilkan di form
+    status: convertStatusToString(user.status),
     deadline: user.deadline,
-    auditor: user.auditor,
+    auditor: convertAuditorToString(user.auditor),
   });
   setIsModalOpen(true);
 };
@@ -173,9 +175,10 @@ const handleEditUser = (user) => {
 // Fungsi untuk mengupdate input
 const handleInputChange = (e) => {
   const { name, value } = e.target;
+  console.log(`Input changed: ${name} = ${value}`); // Tambahan logging untuk debug
   setNewUser(prevState => ({
-      ...prevState,
-      [name]: value
+    ...prevState,
+    [name]: value
   }));
 };
 
@@ -200,7 +203,10 @@ const handleUpdate = async () => {
     };
 
     console.log('Data yang dikirim:', updateData);
+    console.log('Nilai phase sebelum konversi:', newUser.phase);
+    console.log('Nilai phase setelah konversi:', convertPhaseToNumber(newUser.phase));
 
+    
     try {
       // Kirim request
       const response = await axios.put(`${import.meta.env.VITE_HELP_DESK}/SPI/edit-data`, updateData);
@@ -796,8 +802,7 @@ useEffect(() => {
             Cancel
           </button>
         </div>
-      </Modal>
-      
+      </Modal>  
       {/* Handdle Delete */}
       <Modal
         isOpen={isDeleteModalOpen}
@@ -820,8 +825,6 @@ useEffect(() => {
           </button>
         </div>
       </Modal>
-
-
     </div>
   );
 };

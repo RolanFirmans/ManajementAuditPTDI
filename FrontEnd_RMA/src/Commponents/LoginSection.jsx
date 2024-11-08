@@ -15,87 +15,122 @@ export default function LoginSection() {
   const { login } = useContext(AuthContext); // Gunakan context untuk mengatur status autentikasi
   const location = useLocation();
   const [nik, setNik] = useState("");
-  const [confirmNik, setConfirmNik] = useState("");
+  const [password, setPassword] = useState("");
   const closeModal = () => setModalIsOpen(false);
 
-  const handleLogin = () => {
-    login(); // Fungsi login dari AuthContext
-    const destination = location.state?.from?.pathname || '/Admin';
-    navigate(destination, { replace: true });
-  };
+  // Username dan password admin yang di tanam di kode
+  const adminUsername = "admin"; // NIK admin
+  const adminPassword = "admin123"; // Password admin
 
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    // Cek apakah kedua NIK dan password diisi
+    if (!nik && !password) {
+      console.log("Both fields are empty");
+      Swal.fire({
+        title: "Error!",
+        text: "Kedua NIK dan password harus diisi.",
+        icon: "error"
+      });
+      setError("Kedua NIK dan password harus diisi.");
+      return; // Menghentikan eksekusi lebih lanjut
+    }
+
+    // Cek apakah NIK dan Password sesuai dengan admin
+    if (nik === adminUsername && password === adminPassword) {
+      localStorage.setItem('token', 'dummy_token_admin'); // Token dummy untuk admin
+      login(); // Panggil fungsi login dari AuthContext
+      Swal.fire({
+        title: "Good job!",
+        text: "Welcome, Admin!",
+        icon: "success"
+      });
+      navigate("/Admin");
+      closeModal();
+      return; // Menghentikan eksekusi lebih lanjut
+    }
+
+    // Jika bukan admin, coba login melalui API
     try {
       const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Login/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ nik, confirmNik }),
+        body: JSON.stringify({ nik, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan saat login');
+        // Cek untuk kesalahan khusus dari API
+        switch (data.error) {
+          case 'NIK tidak valid':
+            Swal.fire({
+              title: "Error!",
+              text: "NIK yang Anda masukkan salah.",
+              icon: "error"
+            });
+            setError("NIK salah.");
+            break;
+          case 'Password salah':
+            Swal.fire({
+              title: "Error!",
+              text: "Password yang Anda masukkan salah.",
+              icon: "error"
+            });
+            setError("Password salah.");
+            break;
+          
+          default:
+            // Untuk kesalahan umum
+            Swal.fire({
+              title: "Error!",
+              text: "Terjadi kesalahan saat login.",
+              icon: "error"
+            });
+            setError("Terjadi kesalahan saat login.");
+        }
+        return; // Menghentikan eksekusi lebih lanjut jika terdapat error
       }
 
       // Simpan token di localStorage
       localStorage.setItem('token', data.token);
-    
-      // Panggil fungsi login dari AuthContext
-      login();
+      login(); // Panggil fungsi login dari AuthContext
 
       // Arahkan pengguna berdasarkan peran
-      switch (String(data.user.role)) { // Memastikan perbandingan dalam bentuk string
+      switch (String(data.user.role)) {
         case "1":
-          Swal.fire({
-            title: "Good job!",
-            text: "Welcome, Admin!",
-            icon: "success"
-          });
+          Swal.fire("Good job!", "Welcome, Admin!", "success");
           navigate("/Admin");
           break;
         case "2":
-          Swal.fire({
-            title: "Good job!",
-            text: "Welcome, Auditee!",
-            icon: "success"
-          });
+          Swal.fire("Good job!", "Welcome, Auditee!", "success");
           navigate("/Auditee");
           break;
         case "3":
-          Swal.fire({
-            title: "Good job!",
-            text: "Welcome, SPI!",
-            icon: "success"
-          });
+          Swal.fire("Good job!", "Welcome, SPI!", "success");
           navigate("/Spi");
           break;
         case "4":
-          Swal.fire({
-            title: "Good job!",
-            text: "Welcome, Admin Audit IT!",
-            icon: "success"
-          });
+          Swal.fire("Good job!", "Welcome, Admin Audit IT!", "success");
           navigate("/AdminAuditIt");
           break;
         default:
-          Swal.fire({
-            title: "Welcome!",
-            text: "You've successfully logged in.",
-            icon: "success"
-          });
+          Swal.fire("Welcome!", "You've successfully logged in.", "success");
           navigate("/Dashboard");
-      }      
+      }
       closeModal();
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message);
+      Swal.fire({
+        title: "Error!",
+        text: "Terjadi kesalahan saat login.",
+        icon: "error"
+      });
     }
   };
 
@@ -116,7 +151,7 @@ export default function LoginSection() {
           <div className="form-group">
             <label htmlFor="nik">NIK:</label>
             <input
-              type="username"
+              type="text" // Tipe input untuk NIK
               id="nik"
               value={nik}
               onChange={(e) => setNik(e.target.value)}
@@ -124,12 +159,12 @@ export default function LoginSection() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="confirmNik">Password:</label>
+            <label htmlFor="password">Password:</label>
             <input
               type="password"
-              id="confirmNik"
-              value={confirmNik}
-              onChange={(e) => setConfirmNik(e.target.value)}
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
