@@ -1,23 +1,22 @@
-import React, { useState } from 'react'
-import axios from 'axios'
-import '../App.css'
-import { CloudDownloadOutlined } from '@ant-design/icons'
-import Swal from 'sweetalert2'
+import React, { useState } from 'react';
+import axios from 'axios';
+import '../App.css';
+import { CloudDownloadOutlined } from '@ant-design/icons';
+import Swal from 'sweetalert2';
 
-const UploadFilePdf = () => {
-  const [file, setFile] = useState(null) // Set file menjadi null secara default
-  const [description, setDescription] = useState('')
-  const [msg, setMsg] = useState('') // State for messages
+const UploadFilePdf = ({ onClose }) => { // Tambahkan prop onClose
+  const [file, setFile] = useState(null); // Inisialisasi file dengan null
+  const [description, setDescription] = useState('');
+  const [msg, setMsg] = useState('');
 
   const upload = () => {
-    // Validasi apakah file telah dipilih
     if (!file) {
-        Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: "Silakan pilih file sebelum mengupload!",
-        });
-        return; // Hentikan eksekusi lebih lanjut jika tidak ada file
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Silakan pilih file sebelum mengupload!",
+      });
+      return;
     }
 
     const formData = new FormData();
@@ -25,40 +24,48 @@ const UploadFilePdf = () => {
     formData.append('key2', description);
 
     axios
-        .post('http://localhost:3100/Auditee/test', formData)
-        .then(response => {
-            console.log('Response from server:', response.data); // Debug log
-            if (response.data.message === 'Test created successfully') {
-                Swal.fire({
-                  icon: "error",
-                  title: "Oops...",
-                  text: "Something went wrong!"
-                });
-            } else {
-                Swal.fire({
-                    title: "Good job!",
-                    text: "Data Berhasil Di Upload!",
-                    icon: "success"
-                });
-            }
-        })
-        .catch(err => {
-            console.error('Upload error:', err);
-            Swal.fire({
-                icon: "error",
-                title: "Gagal",
-                text: "Terjadi kesalahan saat mengupload file.",
-            });
+      .post('http://localhost:3100/Auditee/test', formData)
+      .then(response => {
+        if (response.data.message === 'Test created successfully') {
+          Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Something went wrong!"
+          });
+        } else {
+          Swal.fire({
+            title: "Good job!",
+            text: "Data Berhasil Di Upload!",
+            icon: "success"
+          });
+          onClose(); // Jika berhasil, panggil onClose untuk menutup modal
+        }
+      })
+      .catch(err => {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal",
+          text: "Terjadi kesalahan saat mengupload file.",
         });
-};
+      });
+  };
 
+  const resetFields = () => {
+    setFile(null);
+    setDescription('');
+    setMsg('');
+
+    const fileInput = document.getElementById('fileUpload');
+    if (fileInput) {
+      fileInput.value = ''; // Reset nilai input file
+    }
+  };
 
   return (
     <div className='container' style={{ paddingTop: 60 }}>
       <div className='row'>
         <h1 className='textUploadNewFile'>Upload New File</h1>
         <div className='col-12'>
-          {/* Input file yang disembunyikan */}
           <input
             type='file'
             style={{ display: 'none' }} // Sembunyikan input
@@ -66,16 +73,15 @@ const UploadFilePdf = () => {
             onChange={e => setFile(e.target.files[0])} // Set file ke state
           />
 
-          {/* Ikon yang berfungsi sebagai pengganti input file */}
           <label
             htmlFor='fileUpload'
             style={{ cursor: 'pointer' }}
             className='dragAuditee'
           >
             {file ? (
-              <span>{file.name}</span> // Tampilkan nama file setelah di-upload
+              <span>{file.name}</span>
             ) : (
-              <CloudDownloadOutlined style={{ fontSize: '90px' }} /> // Tampilkan ikon jika tidak ada file
+              <CloudDownloadOutlined style={{ fontSize: '90px' }} />
             )}
           </label>
         </div>
@@ -87,9 +93,11 @@ const UploadFilePdf = () => {
             className='formAuditee'
             placeholder='Enter Description'
             autoComplete='off'
+            value={description} // Control input value
             onChange={e => setDescription(e.target.value)}
           />
         </div>
+
         <button
           type='button'
           className='btnUploadNewAuditee'
@@ -98,14 +106,22 @@ const UploadFilePdf = () => {
         >
           Upload
         </button>
-        <h1
-          style={{ fontSize: '15px', textAlign: 'center', marginTop: '20px' }}
+
+        <button
+          type='button'
+          className='btnUploadNewAuditee'
+          onClick={resetFields}
+          style={{ marginTop: '-10px' }}
         >
+          Cancel
+        </button>
+
+        <h1 style={{ fontSize: '15px', textAlign: 'center', marginTop: '20px' }}>
           {msg}
         </h1>
       </div>
     </div>
-  )
+  );
 }
 
-export default UploadFilePdf
+export default UploadFilePdf;

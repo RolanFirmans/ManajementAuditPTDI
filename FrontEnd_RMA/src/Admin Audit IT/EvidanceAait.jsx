@@ -45,7 +45,7 @@ const EvidenceAait = () => {
       case 3:
         return 'ITML'
       case 4:
-        return 'ParkerRussel'
+        return 'PARKERRUSSEL'
       default:
         return 'unknown'
     }
@@ -219,6 +219,20 @@ const EvidenceAait = () => {
       console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan')
     }
   }, [])
+  
+  // const refreshData = useCallback(async () => {
+  //   if (selectedYear) {
+  //     await fetchDataByYear(selectedYear);
+  //   }
+  // }, [selectedYear, fetchDataByYear]);
+
+  // useEffect(() => {
+  //   const intervalId = setInterval(() => {
+  //     refreshData();
+  //   }, 1000); // Adjust the time as needed
+
+  //   return () => clearInterval(intervalId); // Cleanup on unmount
+  // }, [refreshData]);
 
   // --MENAMPILKAN DATA AUDITEE
   useEffect(() => {
@@ -270,76 +284,80 @@ const EvidenceAait = () => {
   }
 
   const handleSelectAuditee = async () => {
-    const selectedNik = selectedAuditees[currentEditOrder.no]
+    const selectedNik = selectedAuditees[currentEditOrder.no];
     if (!selectedNik) {
-      console.error('Tidak ada auditee yang dipilih')
-      return
+      console.error('Tidak ada auditee yang dipilih');
+      return;
     }
 
     const requestData = {
       i_audevd: currentEditOrder.no,
-      n_audusr_usrnm: selectedNik
-    }
+      n_audusr_usrnm: selectedNik,
+    };
 
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_HELP_DESK}/AuditIT/update-auditee`,
-        requestData
-      )
+        requestData,
+      );
 
       if (response.data && response.data.payload) {
-        console.log('Auditee berhasil diperbarui')
-        setOrders(prevOrders =>
-          prevOrders.map(order =>
+        console.log('Auditee berhasil diperbarui');
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
             order.no === currentEditOrder.no
               ? {
                   ...order,
                   auditee: {
                     nik: selectedNik,
                     name: auditeeData.find(
-                      a => a.n_audusr_usrnm === selectedNik
-                    )?.n_audusr
-                  }
+                      (a) => a.n_audusr_usrnm === selectedNik,
+                    )?.n_audusr,
+                  },
                 }
-              : order
-          )
-        )
+              : order,
+          ),
+        );
 
         // Update the current edit order
-        setCurrentEditOrder(prevOrder => ({
+        setCurrentEditOrder((prevOrder) => ({
           ...prevOrder,
           auditee: {
             nik: selectedNik,
-            name: auditeeData.find(a => a.n_audusr_usrnm === selectedNik)
-              ?.n_audusr
-          }
-        }))
+            name: auditeeData.find((a) => a.n_audusr_usrnm === selectedNik)
+              ?.n_audusr,
+          },
+        }));
 
         // Clear the selected auditee for this order
-        setSelectedAuditees(prev => {
-          const updated = { ...prev }
-          delete updated[currentEditOrder.no]
-          return updated
-        })
-
+        setSelectedAuditees((prev) => {
+          const updated = { ...prev };
+          delete updated[currentEditOrder.no];
+          return updated;
+        });
+        
+        // Close Modal before showing alert
+        setIsEditModalOpen(false);
+        
         Swal.fire({
           title: 'Good job!',
           text: `Data berhasil di Upload`,
-          icon: 'success'
-        })
+          icon: 'success',
+        });
       } else {
         console.error(
           'Gagal memperbarui auditee:',
-          response.data ? response.data.message : 'Respons tidak valid'
-        )
+          response.data ? response.data.message : 'Respons tidak valid',
+        );
       }
     } catch (error) {
       console.error(
         'Error saat memperbarui auditee:',
-        error.response ? error.response.data : error.message
-      )
+        error.response ? error.response.data : error.message,
+      );
     }
-  }
+};
+
 
   // -- MENAMPILKAN AUDITEE --
   const GetAuditee = async (orderNo, i_audevd_aud) => {

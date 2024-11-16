@@ -18,7 +18,6 @@ const upload = multer({ storage: storage });
 
 // Definisi rute dengan callback yang benar
 router.post('/upload-file-excel', upload.single('file'), spiControler.uploadExcel);
-router.post('/upload-file-year', upload.single('file'), spiControler.uploadExcel);
 router.get('/TemplateFileExcel', spiControler.downloadFileExcel);
 router.get('/tmau-devd', spiControler.getEvidenceSPI);
 router.get('/remarks', spiControler.getDataRemarksSPI);

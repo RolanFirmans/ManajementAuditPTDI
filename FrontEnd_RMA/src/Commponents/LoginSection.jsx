@@ -13,7 +13,6 @@ export default function LoginSection() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login } = useContext(AuthContext); // Gunakan context untuk mengatur status autentikasi
-  const location = useLocation();
   const [nik, setNik] = useState("");
   const [password, setPassword] = useState("");
   const closeModal = () => setModalIsOpen(false);
@@ -31,10 +30,10 @@ export default function LoginSection() {
       console.log("Both fields are empty");
       Swal.fire({
         title: "Error!",
-        text: "Kedua NIK dan password harus diisi.",
+        text: "Kedua Username dan password harus diisi.",
         icon: "error"
       });
-      setError("Kedua NIK dan password harus diisi.");
+      setError("Kedua Username dan password harus diisi.");
       return; // Menghentikan eksekusi lebih lanjut
     }
 
@@ -67,10 +66,10 @@ export default function LoginSection() {
       if (!response.ok) {
         // Cek untuk kesalahan khusus dari API
         switch (data.error) {
-          case 'NIK tidak valid':
+          case 'Username tidak valid':
             Swal.fire({
               title: "Error!",
-              text: "NIK yang Anda masukkan salah.",
+              text: "Username yang Anda masukkan salah.",
               icon: "error"
             });
             setError("NIK salah.");
@@ -149,7 +148,7 @@ export default function LoginSection() {
         {error && <p className="error">{error}</p>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="nik">NIK:</label>
+            <label htmlFor="nik">Username:</label>
             <input
               type="text" // Tipe input untuk NIK
               id="nik"

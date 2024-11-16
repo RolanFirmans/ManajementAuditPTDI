@@ -7,14 +7,12 @@ class SpiModel {
     }
 
     static async getEvidenceSPI() {
-      const currentYear = new Date().getFullYear().toString();
       const result = await pool.query(
-          'SELECT * FROM audit.tmaudevd WHERE EXTRACT(YEAR FROM TO_DATE(C_YEAR, \'YYYY\')) = $1',
-          [currentYear]
+          'SELECT * FROM audit.tmaudevd WHERE C_YEAR IN (SELECT DISTINCT C_YEAR FROM audit.tmaudevd)'
       );
-        return result.rows;
-      }
-    
+      return result.rows;
+     }
+  
       static async getDataRemarksSPI(key) {
         let query = `
         SELECT i_audevdfile, n_audevdfile_file, e_audevdfile_desc 

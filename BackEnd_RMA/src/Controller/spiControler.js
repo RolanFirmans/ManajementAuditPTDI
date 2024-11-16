@@ -194,6 +194,32 @@ class spiControler {
       res.status(500).json({ error: 'Terjadi kesalahan saat menghapus data karyawan' });
     }
   }
+
+  static async uploadExcel(req, res) {
+    try {
+      const file = req.file;
+      const selectedYear = req.body.year; // Ambil tahun dari body formData
+
+      console.log("Received file:", file); 
+      console.log("Received year from frontend:", selectedYear); // Log tahun yang diterima
+
+      if (!file) {
+          return res.status(400).json({ message: "File tidak ter-upload." });
+      }
+
+      if (!selectedYear) {
+          return res.status(400).json({ message: "Tahun tidak diterima." });
+      }
+
+      // Panggil metode upload Excel pada SpiService
+      const data = await SpiService.uploadExcel(file.path, selectedYear);
+      
+      return res.json({ success: true, message: "Data berhasil diupload", data: data });
+  } catch (error) {
+      console.error("Error processing upload:", error);
+      return res.status(500).json({ message: error.message || "Internal server error" });
+  }
+  }
 }
 
 module.exports = spiControler;

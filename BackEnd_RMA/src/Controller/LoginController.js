@@ -8,7 +8,7 @@ const loginUser = async (req, res) => {
   try {
     // Pastikan kedua NIK tidak kosong
     if (!nik || !password) {
-      return res.status(401).json({ error: 'Kedua NIK dan password  harus diisi' });
+      return res.status(401).json({ error: 'Kedua Username dan password  harus diisi' });
     }
 
     // Cari user berdasarkan NIK pertama
@@ -19,7 +19,7 @@ const loginUser = async (req, res) => {
 
     // Jika NIK tidak ditemukan
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'NIK tidak valid' });
+      return res.status(401).json({ error: 'Username tidak valid' });
     }
 
     const user = result.rows[0];

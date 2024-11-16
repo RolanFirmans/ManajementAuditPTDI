@@ -1285,3 +1285,16 @@ button {
   background-color: #ccc;
   color: #000000;
 }
+
+
+.download-btn {
+  /* Menghilangkan outline atau border */
+  outline: none;
+  border: none;
+  background: transparent; /* Membuat background transparan jika terdapat warna */
+  cursor: pointer; /* Mengubah pointer saat hover */
+}
+
+.download-btn:focus {
+  outline: none; /* Menghilangkan garis fokus pada button */
+}

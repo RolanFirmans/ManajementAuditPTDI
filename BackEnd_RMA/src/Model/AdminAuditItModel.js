@@ -6,17 +6,14 @@ class AdminAuditItModel {
         this.pool = pool;
       }
   static async getDataEvidenceAAIT() {
-    const currentYear = new Date().getFullYear().toString();
-      const result = await pool.query(
-          'SELECT * FROM audit.tmaudevd WHERE EXTRACT(YEAR FROM TO_DATE(C_YEAR, \'YYYY\')) = $1',
-          [currentYear]
-      );
-        return result.rows;
+    const result = await pool.query(
+      'SELECT * FROM audit.tmaudevd WHERE C_YEAR IN (SELECT DISTINCT C_YEAR FROM audit.tmaudevd)'
+  );
+  return result.rows;
   }
 
 
   static async getSelectAuditeeAAIT(role) {
-   
     const result = await pool.query(`
       SELECT t.n_audusr_usrnm, t.N_AUDUSR, t.c_audusr_role
       FROM audit.TMAUDUSR t
@@ -77,7 +74,6 @@ class AdminAuditItModel {
   }
 
   static async getDownloadFileAAIT (fileId){
-
     try {
       const query = 'SELECT i_audevdfile, n_audevdfile_file FROM audit.tmaudevdfile WHERE i_audevdfile = $1';
       const result = await pool.query(query, [parseInt(fileId)]);

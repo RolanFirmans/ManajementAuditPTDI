@@ -328,6 +328,20 @@ const EvidenceAuditee = () => {
     }
   }, [selectedYear, fetchDataByYear])
 
+  // const refreshData = useCallback(async () => {
+  //   if (selectedYear) {
+  //     await fetchDataByYear(selectedYear);
+  //   }
+  // }, [selectedYear, fetchDataByYear]);
+
+  // useEffect(() => {
+  //   const intervalId = setInterval(() => {
+  //     refreshData();
+  //   }, 1); // Adjust the time as needed
+
+  //   return () => clearInterval(intervalId); // Cleanup on unmount
+  // }, [refreshData]);
+
   // --MENAMPILKAN DATA AUDITEE
   useEffect(() => {
     const fetchAuditeeData = async () => {
@@ -648,7 +662,7 @@ const EvidenceAuditee = () => {
                         }}
                         onClick={() => handleUploadFile(order)}
                       ></i>
-                      <i
+                      {/* <i
                         className='bi-pencil-fill'
                         style={{
                           color: 'black',
@@ -657,7 +671,7 @@ const EvidenceAuditee = () => {
                           marginRight: '10px'
                         }}
                         onClick={() => handleEditUser(order)}
-                      ></i>
+                      ></i> */}
                       <i
                         className='bi-clipboard2-check-fill'
                         style={{
