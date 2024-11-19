@@ -656,12 +656,29 @@ button {
 
 .evidence-table {
   margin-left: -170px;
+  border-collapse: collapse; 
   margin-top: 10px;
 }
-.table-spi th{
+
+/* .table-spi th{
   font-size:14px;
   text-align: justify;
+} */
+
+/* .evidence-table {
+  margin-left: -170px;
+  margin: 10px auto; /* Mengatur margin atas dan bawah, serta tengah tabel 
+  width: 100%; /* Mengatur lebar tabel agar penuh 
+  border-collapse: collapse; /* Menghapus jarak antara sel tabel 
+  font-family: Arial, sans-serif; /* Memilih font yang lebih modern dan mudah dibaca 
+} */
+
+.table-spi th, .table-spi td {
+  padding: 10px; /* Menambahkan ruang di dalam sel */
+  text-align: center; /* Menyelaraskan teks ke kiri */
+  vertical-align: middle;
 }
+
 
 /* END EVIDENCE */
 

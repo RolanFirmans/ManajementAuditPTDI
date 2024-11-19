@@ -634,15 +634,15 @@ const EvidenceSpi = () => {
     })
 
     const result = await swalWithBootstrapButtons.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: 'Apakah Anda yakin?',
+      text: "Anda tidak akan bisa membalikkan ini!",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'No, cancel!',
+      confirmButtonText: 'Ya, hapus ini!',
+      cancelButtonText: 'Tidak, batalkan!',
       reverseButtons: true
     })
-
+    
     if (result.isConfirmed) {
       try {
         const response = await axios.delete(
@@ -654,7 +654,7 @@ const EvidenceSpi = () => {
           setOrders(prevOrders => prevOrders.filter(order => order.no !== no))
 
           swalWithBootstrapButtons.fire({
-            title: 'Deleted!',
+            title: 'Hapus!',
             text: 'Evidence telah berhasil dihapus.',
             icon: 'success'
           })
@@ -664,7 +664,7 @@ const EvidenceSpi = () => {
       } catch (error) {
         console.error('Error saat menghapus evidence:', error)
         Swal.fire(
-          'Error',
+          'Gagal',
           `Gagal menghapus evidence: ${
             error.response?.data?.message || error.message
           }`,
@@ -673,7 +673,7 @@ const EvidenceSpi = () => {
       }
     } else if (result.dismiss === Swal.DismissReason.cancel) {
       swalWithBootstrapButtons.fire({
-        title: 'Cancelled',
+        title: 'Batalkan',
         text: 'Evidence tidak jadi dihapus.',
         icon: 'error'
       })
@@ -800,6 +800,7 @@ const EvidenceSpi = () => {
                           marginRight: '10px'
                         }}
                         onClick={() => handleEditUser(order)}
+                         title="Edit"
                       ></i>
                       <i
                         className='bi-trash'
@@ -809,6 +810,7 @@ const EvidenceSpi = () => {
                           cursor: 'pointer'
                         }}
                         onClick={() => handleDeleteUser(order.no)}
+                         title="Hapus"
                       ></i>
 
                       {order.statusComplete.backgroundColor === 'yellow' && (
@@ -820,6 +822,7 @@ const EvidenceSpi = () => {
                             cursor: 'pointer'
                           }}
                           onClick={() => handleUpdateStatusSPI(order)}
+                          title="Status Complete"
                         ></i>
                       )}
                     </td>

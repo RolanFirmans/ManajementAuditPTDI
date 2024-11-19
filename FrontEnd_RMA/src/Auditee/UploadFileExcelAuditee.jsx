@@ -79,7 +79,7 @@ const UploadFileExcelSpi = () => {
         Swal.fire({
           icon: "error",
           title: "Oops...",
-          text: "Something went wrong during the upload!",
+          text:  "Ada yang tidak beres saat mengunggah!",
         });
       }
     } catch (error) {

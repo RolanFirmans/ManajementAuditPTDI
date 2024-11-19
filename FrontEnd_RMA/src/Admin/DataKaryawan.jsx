@@ -73,7 +73,7 @@ const DataKaryawan = ({ onSelectKaryawan, filterOrganisasi }) => {
             <tr>
               <th>NIK</th>
               <th>Nama</th>
-              <th>Organisasi</th>
+              <th>Posisi</th>
             </tr>
           </thead>
           <tbody>

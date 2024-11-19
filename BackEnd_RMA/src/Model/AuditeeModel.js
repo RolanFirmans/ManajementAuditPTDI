@@ -14,11 +14,15 @@ class AuditeeModel {
     try {
       await client.query('BEGIN')
 
-      const query1 = 'SELECT I_AUDEVD FROM AUDIT.TMAUDEVD WHERE id = $1'
+      // Ganti 'id' dengan nama kolom primary key yang sebenarnya
+      // Misalnya, jika primary key adalah 'I_AUDEVD' atau nama lain
+      const query1 = 'SELECT I_AUDEVD FROM AUDIT.TMAUDEVD WHERE I_AUDEVD = $1'
       const result1 = await client.query(query1, [auditeeId])
+      
       if (result1.rows.length === 0) {
         throw new Error('Auditee not found')
       }
+      
       const i_audevd = result1.rows[0].i_audevd
 
       const query2 = `
@@ -38,6 +42,7 @@ class AuditeeModel {
       await client.query('COMMIT')
       return generatedKey
     } catch (error) {
+      console.error('Detail Error:', error);
       await client.query('ROLLBACK')
       throw error
     } finally {

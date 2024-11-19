@@ -63,7 +63,7 @@ const EvidenceAuditee = () => {
       case 3:
         return 'ITML'
       case 4:
-        return 'ParkerRussel'
+        return 'PARKERRUSSEL'
       default:
         return 'unknown'
     }
@@ -88,11 +88,13 @@ const EvidenceAuditee = () => {
       return {
         text: 'COMPLETE AUDITEE',
         backgroundColor: 'orange',
-        color: 'white'
+        color: 'white',
       }
     }
     return { text: 'NOT COMPLETE', backgroundColor: 'red', color: 'white' }
   }
+
+  
 
   useEffect(() => {
     localStorage.setItem('orders', JSON.stringify(orders))
@@ -531,15 +533,16 @@ const EvidenceAuditee = () => {
       buttonsStyling: false
     });
   
-    const result = await swalWithBootstrapButtons.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Anda tidak akan bisa membalikkan ini!",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "No, cancel!",
+      confirmButtonText: 'Ya, hapus ini!',
+      cancelButtonText: 'Tidak, batalkan!',
       reverseButtons: true
-    });
+    })
+    
   
     if (result.isConfirmed) {
       try {
@@ -549,8 +552,8 @@ const EvidenceAuditee = () => {
           console.log('Evidence berhasil dihapus:', response.data);
           setOrders(prevOrders => prevOrders.filter(order => order.no !== no));
   
-          swalWithBootstrapButtons.fire({
-            title: "Deleted!",
+          Swal.fire({
+            title: "Hapus!",
             text: "Evidence telah berhasil dihapus.",
             icon: "success"
           });
@@ -562,8 +565,8 @@ const EvidenceAuditee = () => {
         Swal.fire('Error', `Gagal menghapus evidence: ${error.response?.data?.message || error.message}`, 'error');
       }
     } else if (result.dismiss === Swal.DismissReason.cancel) {
-      swalWithBootstrapButtons.fire({
-        title: "Cancelled",
+      Swal.fire({
+        title: "Batalkan",
         text: "Evidence tidak jadi dihapus.",
         icon: "error"
       });
@@ -644,10 +647,12 @@ const EvidenceAuditee = () => {
                     </td>
                     <td>{order.auditor}</td>
                     <td
+                    
+                    className='StatusComplete'
                       style={{
                         backgroundColor: order.statusComplete.backgroundColor,
-                        color: order.statusComplete.color
-                      }}
+                        color: order.statusComplete.color,
+                      }} 
                     >
                       {order.statusComplete.text}
                     </td>
@@ -658,8 +663,9 @@ const EvidenceAuditee = () => {
                           color: 'black',
                           fontSize: '20px',
                           cursor: 'pointer',
-                          marginRight: '10px'
+                          marginRight: '10px',
                         }}
+                        title="Upload"
                         onClick={() => handleUploadFile(order)}
                       ></i>
                       {/* <i
@@ -681,6 +687,7 @@ const EvidenceAuditee = () => {
                           marginRight: '10px'
                         }}
                         onClick={() => handleUpdateStatus(order)}
+                        title="Status Complete"
                       ></i>
                     </td>
                   </tr>

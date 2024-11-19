@@ -23,8 +23,15 @@ class AusiteeControler {
     const { description, auditeeId } = req.body;
     const file = req.file;
 
+    // Logging untuk memastikan data yang diterima
+    console.log('Received Data:', {
+        description,
+        auditeeId,
+        fileName: file ? file.originalname : 'No File'
+    });
+
     if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
+      return res.status(400).json({ error: "File is required" });
     }
 
     if (!auditeeId) {
@@ -32,11 +39,22 @@ class AusiteeControler {
     }
 
     try {
-      const generatedKey = await AuditeeModel.uploadNewTugas(file.originalname, description, auditeeId);
-      res.status(200).json({ message: "Upload New File berhasil", data: { i_audevfile: generatedKey } });
+      const generatedKey = await AuditeeModel.uploadNewTugas(
+        file.originalname, 
+        description || 'Deskripsi Default', 
+        auditeeId
+      );
+      
+      res.status(200).json({ 
+        message: "Upload New File berhasil", 
+        data: { i_audevfile: generatedKey } 
+      });
     } catch (error) {
-      console.error("Error executing query", error.stack);
-      res.status(500).json({ error: "Terjadi kesalahan pada server" });
+      console.error("Error executing query", error);
+      res.status(500).json({ 
+        error: "Terjadi kesalahan pada server", 
+        details: error.message 
+      });
     }
   }
 

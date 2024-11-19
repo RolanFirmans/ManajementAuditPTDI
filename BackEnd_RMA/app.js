@@ -17,6 +17,9 @@ const pool = new Pool({
   port: process.env.PGPORT,
 });
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Periksa koneksi ke database
 pool.connect((err, client, release) => {
   if (err) {

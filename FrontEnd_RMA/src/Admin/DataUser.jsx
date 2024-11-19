@@ -336,15 +336,16 @@ const DataUser = () => {
       buttonsStyling: false
     })
 
-    const result = await swalWithBootstrapButtons.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Anda tidak akan dapat membalikkan ini!",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'No, cancel!',
+      confirmButtonText: 'Ya, hapus ini!',
+      cancelButtonText: 'Tidak, batalkan!',
       reverseButtons: true
     })
+    
 
     if (result.isConfirmed) {
       try {
@@ -358,8 +359,8 @@ const DataUser = () => {
           toast.success('User berhasil dihapus')
 
           // Menampilkan SweetAlert bahwa penghapusan berhasil
-          swalWithBootstrapButtons.fire({
-            title: 'Deleted!',
+          Swal.fire({
+            title: 'Hapus!',
             text: 'User telah berhasil dihapus.',
             icon: 'success'
           })
@@ -376,8 +377,8 @@ const DataUser = () => {
       }
     } else if (result.dismiss === Swal.DismissReason.cancel) {
       // Menampilkan SweetAlert jika penghapusan dibatalkan
-      swalWithBootstrapButtons.fire({
-        title: 'Cancelled',
+      Swal.fire({
+        title: 'Batalkan',
         text: 'User tidak jadi dihapus.',
         icon: 'error'
       })
@@ -456,10 +457,10 @@ const DataUser = () => {
             <tr>
               <th>No</th>
               <th>NIK</th>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Organization</th>
-              <th>Action</th>
+              <th>Nama</th>
+              <th>Peran</th>
+              <th>Posisi</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody className='table-group-divider'>
@@ -480,6 +481,7 @@ const DataUser = () => {
                       marginRight: '10px'
                     }}
                     onClick={() => handleEditUser(order)}
+                     title="Edit"
                   ></i>
                   <i
                     className='bi-trash'
@@ -489,6 +491,7 @@ const DataUser = () => {
                       cursor: 'pointer'
                     }}
                     onClick={() => handleDeleteUser(order.NIK)}
+                     title="Hapus"
                   ></i>
                 </td>
               </tr>
@@ -536,7 +539,7 @@ const DataUser = () => {
       >
         <h3>{isEditing ? 'Edit' : 'Add'} Data User</h3>
         <div className='modal-content'>
-          <label>Role</label>
+          <label>Peran</label>
           <select
             name='Role'
             value={newUser.Role}
@@ -557,7 +560,7 @@ const DataUser = () => {
             readOnly
             className='modal-input'
           />
-          <label>Name</label>
+          <label>Nama</label>
           <input
             type='text'
             name='Name'

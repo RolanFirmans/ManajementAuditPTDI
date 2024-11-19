@@ -340,7 +340,7 @@ const EvidenceAait = () => {
         setIsEditModalOpen(false);
         
         Swal.fire({
-          title: 'Good job!',
+          title: 'Kerja Bagus',
           text: `Data berhasil di Upload`,
           icon: 'success',
         });
@@ -537,15 +537,16 @@ const EvidenceAait = () => {
       buttonsStyling: false
     })
 
-    const result = await swalWithBootstrapButtons.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Anda tidak akan bisa membalikkan ini!",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'No, cancel!',
+      confirmButtonText: 'Ya, hapus ini!',
+      cancelButtonText: 'Tidak, batalkan!',
       reverseButtons: true
     })
+    
 
     if (result.isConfirmed) {
       try {
@@ -557,8 +558,8 @@ const EvidenceAait = () => {
           console.log('Evidence berhasil dihapus:', response.data)
           setOrders(prevOrders => prevOrders.filter(order => order.no !== no))
 
-          swalWithBootstrapButtons.fire({
-            title: 'Deleted!',
+          Swal.fire({
+            title: 'Hapus!',
             text: 'Evidence telah berhasil dihapus.',
             icon: 'success'
           })
@@ -568,7 +569,7 @@ const EvidenceAait = () => {
       } catch (error) {
         console.error('Error saat menghapus evidence:', error)
         Swal.fire(
-          'Error',
+          'Gagal',
           `Gagal menghapus evidence: ${
             error.response?.data?.message || error.message
           }`,
@@ -576,8 +577,8 @@ const EvidenceAait = () => {
         )
       }
     } else if (result.dismiss === Swal.DismissReason.cancel) {
-      swalWithBootstrapButtons.fire({
-        title: 'Cancelled',
+      Swal.fire({
+        title: 'Batalkan',
         text: 'Evidence tidak jadi dihapus.',
         icon: 'error'
       })
@@ -764,6 +765,7 @@ const EvidenceAait = () => {
                           marginRight: '10px'
                         }}
                         onClick={() => handleEditUser(order)}
+                         title="Edit"
                       ></i>
                       <i
                         className='bi-trash'
@@ -773,6 +775,7 @@ const EvidenceAait = () => {
                           cursor: 'pointer'
                         }}
                         onClick={() => handleDeleteUser(order.no)}
+                         title="Hapus"
                       ></i>
                       {order.statusComplete.backgroundColor === 'orange' && (
                         <i
@@ -783,6 +786,7 @@ const EvidenceAait = () => {
                             cursor: 'pointer'
                           }}
                           onClick={() => handleUpdateStatus(order)}
+                           title="Status Complete"
                         ></i>
                       )}
                     </td>

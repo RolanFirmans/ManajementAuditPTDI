@@ -30,11 +30,11 @@ const UploadFilePdf = ({ onClose }) => { // Tambahkan prop onClose
           Swal.fire({
             icon: "error",
             title: "Oops...",
-            text: "Something went wrong!"
+            text: "Ada yang tidak beres!"
           });
         } else {
           Swal.fire({
-            title: "Good job!",
+            title: "Kerja Bagus!",
             text: "Data Berhasil Di Upload!",
             icon: "success"
           });

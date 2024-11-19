@@ -29,7 +29,7 @@ export default function LoginSection() {
     if (!nik && !password) {
       console.log("Both fields are empty");
       Swal.fire({
-        title: "Error!",
+        title: "Gagal!",
         text: "Kedua Username dan password harus diisi.",
         icon: "error"
       });
@@ -42,8 +42,8 @@ export default function LoginSection() {
       localStorage.setItem('token', 'dummy_token_admin'); // Token dummy untuk admin
       login(); // Panggil fungsi login dari AuthContext
       Swal.fire({
-        title: "Good job!",
-        text: "Welcome, Admin!",
+        title: "Selamat Datang",
+        text: "Anda Masuk Sebagai, Admin!",
         icon: "success"
       });
       navigate("/Admin");
@@ -68,7 +68,7 @@ export default function LoginSection() {
         switch (data.error) {
           case 'Username tidak valid':
             Swal.fire({
-              title: "Error!",
+              title: "Gagal!",
               text: "Username yang Anda masukkan salah.",
               icon: "error"
             });
@@ -76,7 +76,7 @@ export default function LoginSection() {
             break;
           case 'Password salah':
             Swal.fire({
-              title: "Error!",
+              title: "Gagal!",
               text: "Password yang Anda masukkan salah.",
               icon: "error"
             });
@@ -86,7 +86,7 @@ export default function LoginSection() {
           default:
             // Untuk kesalahan umum
             Swal.fire({
-              title: "Error!",
+              title: "Gagal!",
               text: "Terjadi kesalahan saat login.",
               icon: "error"
             });
@@ -102,23 +102,23 @@ export default function LoginSection() {
       // Arahkan pengguna berdasarkan peran
       switch (String(data.user.role)) {
         case "1":
-          Swal.fire("Good job!", "Welcome, Admin!", "success");
+          Swal.fire( "Selamat Datang", "Anda Masuk Sebagai, Admin!", "success");
           navigate("/Admin");
           break;
         case "2":
-          Swal.fire("Good job!", "Welcome, Auditee!", "success");
+          Swal.fire( "Selamat Datang", "Anda Masuk Sebagai, Auditee!", "success");
           navigate("/Auditee");
           break;
         case "3":
-          Swal.fire("Good job!", "Welcome, SPI!", "success");
+          Swal.fire("Selamat Datang", "Anda Masuk Sebagai, SPI!", "success");
           navigate("/Spi");
           break;
         case "4":
-          Swal.fire("Good job!", "Welcome, Admin Audit IT!", "success");
+          Swal.fire("Selamat Datang", "Anda Masuk Sebagai, Admin Audit IT!", "success");
           navigate("/AdminAuditIt");
           break;
         default:
-          Swal.fire("Welcome!", "You've successfully logged in.", "success");
+          Swal.fire("Selamat Datang!", "Anda berhasil login.", "success");
           navigate("/Dashboard");
       }
       closeModal();
@@ -126,7 +126,7 @@ export default function LoginSection() {
       console.error('Login error:', error);
       setError(error.message);
       Swal.fire({
-        title: "Error!",
+        title: "Gagal!",
         text: "Terjadi kesalahan saat login.",
         icon: "error"
       });

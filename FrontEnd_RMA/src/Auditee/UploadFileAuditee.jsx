@@ -50,27 +50,32 @@ const UploadFileAuditee = () => {
 
     // Periksa apakah file dipilih
     if (!file && !selectedAuditee) {
-        // Menggunakan SweetAlert untuk menampilkan pesan
         Swal.fire({
             icon: 'error',
-            title: 'Gagal', // Judul alert
-            text: 'Silakan pilih file atau pilih file dari daftar pencarian.', // Isi pesan
+            title: 'Gagal',
+            text: 'Silakan pilih file atau pilih file dari daftar pencarian.',
         });
-        return; // Keluar dari fungsi jika kondisi tidak terpenuhi
+        return;
     }
-
+    
     const formData = new FormData();
+    
+    // Tambahkan auditeeId (gunakan id dari selectedAuditee atau set default)
+    const auditeeId = selectedAuditee?.id || '1'; // Ganti '1' dengan ID default atau cara mendapatkan ID
+
     if (file) {
         formData.append('file', file);
     } else if (selectedAuditee) {
-        formData.append('file_path', selectedAuditee.n_audevdfile_file);
+        formData.append('file', new File([selectedAuditee.n_audevdfile_file], selectedAuditee.n_audevdfile_file));
     }
-    formData.append('description', description);
 
-    console.log('Mengirim data ke server:', {
-        description,
-        file: file ? file.name : selectedAuditee?.n_audevdfile_file
-    });
+    formData.append('description', description || 'Deskripsi Default');
+    formData.append('auditeeId', auditeeId);
+
+    // Log data yang akan dikirim
+    for (const [key, value] of formData.entries()) {
+        console.log(key, value);
+    }
 
     try {
         const response = await axios.post(
@@ -78,30 +83,25 @@ const UploadFileAuditee = () => {
             formData,
             {
                 headers: {
-                    'Content-Type': 'multipart/form-data', // Pastikan header ini diset ketika menggunakan FormData
+                    'Content-Type': 'multipart/form-data',
                 },
             }
         );
 
-        // Cek apakah upload berhasil
-        if (response.status === 200 || response.status === 201) {
+        if (response.status === 200) {
             Swal.fire({
-                title: 'Good job!',
+                title: 'Berhasil!',
                 text: 'Data berhasil diunggah!',
                 icon: 'success',
             });
-            handleCancel(); // Reset form setelah berhasil mengunggah
-        } else {
-            // Server mengembalikan status lain
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Something went wrong while uploading the file!',
-            });
+            handleCancel();
         }
     } catch (error) {
-        console.error('Error mengunggah file:', error.response); // Log respons error
+        console.error('Error mengunggah file:', error.response);
+        
+        // Tampilkan pesan error yang lebih spesifik
         const errorMessage = error.response?.data?.error || 'Terjadi kesalahan saat mengunggah file.';
+        
         Swal.fire({
             icon: 'error',
             title: 'Gagal',
@@ -109,7 +109,6 @@ const UploadFileAuditee = () => {
         });
     }
 };
-
 
   const handleCancel = () => {
     console.log('Cancelling upload...')
@@ -195,71 +194,71 @@ const UploadFileAuditee = () => {
           >
             Batal
           </button>
-          <button type='submit' className='btnSaveAuditee' onClick={handleSubmit}>
+          <button type='submit' className='btnSaveAuditee'>
             Simpan
           </button>
     
       </form>
 
       <Modal
-        isOpen={isModalUpload}
-        onRequestClose={closeModal}
-        contentLabel='Modal Unggah File Baru'
-        className='user-modal'
-        overlayClassName='user-modal-overlay'
-      >
-        <UploadNewFileAuditee onClose={closeModal} />
-      </Modal>
+    isOpen={isModalUpload}
+    onRequestClose={closeModal}
+    contentLabel='Modal Unggah File Baru'
+    className='user-modal'
+    overlayClassName='user-modal-overlay'
+  >
+    <UploadNewFileAuditee onClose={closeModal} />
+  </Modal>
 
-      <Modal
-        isOpen={isModalSearch}
-        onRequestClose={closeModal}
-        contentLabel='Modal Pencarian File'
-        className='karyawan-modal'
-        overlayClassName='user-modal-overlay'
-      >
-        <div>
-          <h1>Daftar Data</h1>
-          <table className='table table-striped'>
-            <thead className='table-dark'>
-              <tr>
-                <th>No</th>
-                <th>Pilih</th>
-                <th>Path File</th>
-                <th>Deskripsi</th>
+  <Modal
+    isOpen={isModalSearch}
+    onRequestClose={closeModal}
+    contentLabel='Modal Pencarian File'
+    className='karyawan-modal'
+    overlayClassName='user-modal-overlay'
+  >
+    <div>
+      <h1>Daftar Data</h1>
+      <table className='table table-striped'>
+        <thead className='table-dark'>
+          <tr>
+            <th>No</th>
+            <th>Pilih</th>
+            <th>Path File</th>
+            <th>Deskripsi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.length > 0 ? (
+            data.map(item => (
+              <tr key={item.i_audevdfile}>
+                <td>{item.i_audevdfile}</td>
+                <td>
+                  <input
+                    type='checkbox'
+                    checked={
+                      selectedAuditee &&
+                      selectedAuditee.i_audevdfile === item.i_audevdfile
+                    }
+                    onChange={() => handleCheckboxChange(item)}
+                  />
+                </td>
+                <td>{item.n_audevdfile_file}</td>
+                <td>{item.e_audevdfile_desc}</td>
               </tr>
-            </thead>
-            <tbody>
-              {data.length > 0 ? (
-                data.map(item => (
-                  <tr key={item.i_audevdfile}>
-                    <td>{item.i_audevdfile}</td>
-                    <td>
-                      <input
-                        type='checkbox'
-                        checked={
-                          selectedAuditee &&
-                          selectedAuditee.i_audevdfile === item.i_audevdfile
-                        }
-                        onChange={() => handleCheckboxChange(item)}
-                      />
-                    </td>
-                    <td>{item.n_audevdfile_file}</td>
-                    <td>{item.e_audevdfile_desc}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan='4'>Tidak ada data tersedia</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <button onClick={closeModal} className='CloseDataList'>
-            Batal
-          </button>
-        </div>
-      </Modal>
+            ))
+          ) : (
+            <tr>
+              <td colSpan='4'>Tidak ada data tersedia</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      <button onClick={closeModal} className='CloseDataList'>
+        Batal
+      </button>
+    </div>
+  </Modal>
     </div>
   )
 }
