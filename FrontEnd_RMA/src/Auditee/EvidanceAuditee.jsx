@@ -546,7 +546,7 @@ const EvidenceAuditee = () => {
   
     if (result.isConfirmed) {
       try {
-        const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Auditee/delete-file/${no}`);
+        const response = await axios.delete(`${import.meta.env.VITE_HELP_DESK}/Delete/delete-file/${no}`);
         
         if (response.status === 200) {
           console.log('Evidence berhasil dihapus:', response.data);

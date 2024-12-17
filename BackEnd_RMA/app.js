@@ -45,10 +45,13 @@ const SpiRoutes = require('./src/Routes/SpiRoutes')
 // ADMIN AUDIT IT
 const AdminauditIt = require('./src/Routes/adminAuditIT');
 
+
 // export ecxcel
 
 
 const bodyParser = require('body-parser');
+
+const deleteTugasAuditee = require('./src/Routes/deleteTugasAuditeeRoutes');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -72,6 +75,7 @@ app.use("/Auditee", Auditee)
 
 // EXPORT EXCEL
 
+app.use("/Delete", deleteTugasAuditee)
 
 app.listen(port, () => {
   console.log(`Server has been running in http://${host}:${port}`);

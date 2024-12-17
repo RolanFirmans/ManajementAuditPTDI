@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cors = require("cors");
-const auditeeControler = require('../Controller/auditeeControler');
+const DeleteTugasAuditeeControler = require('../Controller/DeleteTugasAuditeeControler');
 // const router = express.Router();
 const multer = require("multer");
 
@@ -26,9 +26,9 @@ router.use(express.urlencoded({ extended: true }));
 // Inisialisasi multer setelah storage
 const upload = multer({ storage });
 
-router.get('/search-file', auditeeControler.getSearchFile);
-router.post('/upload-new-file', upload.single('file'), auditeeControler.uploadNewTugas);
-router.post('/test', upload.single('file'), auditeeControler.uploadNewTugasAuditee);
-router.post('/update-status', auditeeControler.updateStatusComleteAuditee);
-// router.delete('/delete-file/:i_audevdfile', auditeeControler.handleDeleteFileAuditee)
+// router.get('/search-file', auditeeControler.getSearchFile);
+// router.post('/upload-new-file', upload.single('file'), auditeeControler.uploadNewTugas);
+// router.post('/test', upload.single('file'), auditeeControler.uploadNewTugasAuditee);
+// router.post('/update-status', auditeeControler.updateStatusComleteAuditee);
+router.delete('/delete-file/:i_audevdfile', DeleteTugasAuditeeControler.handleDeleteFileAuditee)
 module.exports = router;

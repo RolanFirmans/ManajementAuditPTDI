@@ -32,16 +32,6 @@ const AboutRolesSection = () => {
         <div className="card">
           <img src={AboutRoles} alt="" />
           <p>
-            Auditor melakukan proses audit menggunakan aplikasi. Auditor
-            menggunakan fitur untuk menyusun jadwal audit, mengunggah dokumen
-            terkait, melakukan pengecekan dan verifikasi, serta menyusun laporan
-            audit.
-          </p>
-        </div>
-
-        <div className="card">
-          <img src={AboutRoles} alt="" />
-          <p>
             Auditee adalah entitas atau pengguna yang diaudit, bertanggung jawab
             menyediakan dokumen dan data relevan untuk audit. Tujuannya adalah
             memastikan semua dokumen dan evidence tersedia untuk proses audit
