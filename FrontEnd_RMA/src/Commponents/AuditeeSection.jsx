@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect} from "react";
 import LogoPTDI from "../Asset/LogoPTDI.png";
 import LogoUser from "../Asset/user.png";
 import "../App.css";
 import { HiOutlineLogout, HiChevronDown } from "react-icons/hi";
 import { useNavigate } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 import DashboardAuditee from "../Auditee/DashboardAuditee";
 import DgcaAuditee from "../Auditee/DgcaAuditee";
 import EvidenceAuditee from "../Auditee/EvidanceAuditee";
@@ -20,8 +21,10 @@ import {
   FileOutlined,
 } from '@ant-design/icons';
 import { Button, Menu } from 'antd';
+import { NineKPlusSharp } from "@mui/icons-material";
 
 const AuditeeSection = () => {
+  const { nik } = useParams(); // Ambil NIK dari URL
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activePage, setActivePage] = useState("DashboardAuditee");
@@ -54,6 +57,14 @@ const AuditeeSection = () => {
     },
   ];
 
+  useEffect(() => {
+    // Tampilkan pesan selamat datang saat halaman dimuat
+    Swal.fire({
+        title: "Selamat Datang!",
+        text: `Anda Masuk Sebagai, Auditee ${nik}! `,
+        icon: "success"
+    });
+  }, [nik]);
   
   const handleLogout = () => {
     Swal.fire({
@@ -112,6 +123,26 @@ const AuditeeSection = () => {
     }
   };
 
+  async function fetchAuditeeData(nik) {
+    const response = await axios.get (`${import.meta.env.VITE_HELP_DESK}/AuditIT/data/${nik}`, {
+        headers: {
+            'Authorization': `Bearer ${your_jwt_token}`, // Sertakan token jika diperlukan
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error('Data tidak ditemukan');
+    }
+
+    const data = await response.json();
+    // Tampilkan data di halaman
+    console.log(data);
+  }
+
+  // Panggil fungsi dengan NIK yang sesuai
+  fetchAuditeeData('your_nik');
+
+
   return (
     <div className={`Auditee-section ${isCollapsed ? "collapsed" : ""}`}>
       <header className="header">
@@ -134,7 +165,7 @@ const AuditeeSection = () => {
             className="flex items-center cursor-pointer text-white"
             onClick={toggleUserDropdown}
           >
-            <span className="mr-1">Hallo, Auditee!</span>
+            <span className="mr-1">Hallo, Auditee {nik}!</span>
             <HiChevronDown size={16} />
           </div>
           {isDropdownOpen && (

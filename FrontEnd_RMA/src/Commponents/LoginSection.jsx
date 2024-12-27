@@ -27,111 +27,111 @@ export default function LoginSection() {
 
     // Cek apakah kedua NIK dan password diisi
     if (!nik && !password) {
-      console.log("Both fields are empty");
-      Swal.fire({
-        title: "Gagal!",
-        text: "Kedua Username dan password harus diisi.",
-        icon: "error"
-      });
-      setError("Kedua Username dan password harus diisi.");
-      return; // Menghentikan eksekusi lebih lanjut
+        console.log("Both fields are empty");
+        Swal.fire({
+            title: "Gagal!",
+            text: "Kedua Username dan password harus diisi.",
+            icon: "error"
+        });
+        setError("Kedua Username dan password harus diisi.");
+        return; // Menghentikan eksekusi lebih lanjut
     }
 
     // Cek apakah NIK dan Password sesuai dengan admin
     if (nik === adminUsername && password === adminPassword) {
-      localStorage.setItem('token', 'dummy_token_admin'); // Token dummy untuk admin
-      login(); // Panggil fungsi login dari AuthContext
-      Swal.fire({
-        title: "Selamat Datang",
-        text: "Anda Masuk Sebagai, Admin!",
-        icon: "success"
-      });
-      navigate("/Admin");
-      closeModal();
-      return; // Menghentikan eksekusi lebih lanjut
+        localStorage.setItem('token', 'dummy_token_admin'); // Token dummy untuk admin
+        login(); // Panggil fungsi login dari AuthContext
+        Swal.fire({
+            title: "Selamat Datang",
+            text: "Anda Masuk Sebagai, Admin!",
+            icon: "success"
+        });
+        navigate("/Admin");
+        closeModal();
+        return; // Menghentikan eksekusi lebih lanjut
     }
 
     // Jika bukan admin, coba login melalui API
     try {
-      const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Login/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ nik, password }),
-      });
+        const response = await fetch(`${import.meta.env.VITE_HELP_DESK}/Login/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nik, password }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        // Cek untuk kesalahan khusus dari API
-        switch (data.error) {
-          case 'Username tidak valid':
-            Swal.fire({
-              title: "Gagal!",
-              text: "Username yang Anda masukkan salah.",
-              icon: "error"
-            });
-            setError("NIK salah.");
-            break;
-          case 'Password salah':
-            Swal.fire({
-              title: "Gagal!",
-              text: "Password yang Anda masukkan salah.",
-              icon: "error"
-            });
-            setError("Password salah.");
-            break;
-          
-          default:
-            // Untuk kesalahan umum
-            Swal.fire({
-              title: "Gagal!",
-              text: "Terjadi kesalahan saat login.",
-              icon: "error"
-            });
-            setError("Terjadi kesalahan saat login.");
+        if (!response.ok) {
+            // Cek untuk kesalahan khusus dari API
+            switch (data.error) {
+                case 'Username tidak valid':
+                    Swal.fire({
+                        title: "Gagal!",
+                        text: "Username yang Anda masukkan salah.",
+                        icon: "error"
+                    });
+                    setError("NIK salah.");
+                    break;
+                case 'Password salah':
+                    Swal.fire({
+                        title: "Gagal!",
+                        text: "Password yang Anda masukkan salah.",
+                        icon: "error"
+                    });
+                    setError("Password salah.");
+                    break;
+                default:
+                    // Untuk kesalahan umum
+                    Swal.fire({
+                        title: "Gagal!",
+                        text: "Terjadi kesalahan saat login.",
+                        icon: "error"
+                    });
+                    setError("Terjadi kesalahan saat login.");
+            }
+            return; // Menghentikan eksekusi lebih lanjut jika terdapat error
         }
-        return; // Menghentikan eksekusi lebih lanjut jika terdapat error
-      }
 
-      // Simpan token di localStorage
-      localStorage.setItem('token', data.token);
-      login(); // Panggil fungsi login dari AuthContext
+        // Simpan token di localStorage
+        localStorage.setItem('token', data.token);
+        login(); // Panggil fungsi login dari AuthContext
 
-      // Arahkan pengguna berdasarkan peran
-      switch (String(data.user.role)) {
-        case "1":
-          Swal.fire( "Selamat Datang", "Anda Masuk Sebagai, Admin!", "success");
-          navigate("/Admin");
-          break;
-        case "2":
-          Swal.fire( "Selamat Datang", "Anda Masuk Sebagai, Auditee!", "success");
-          navigate("/Auditee");
-          break;
-        case "3":
-          Swal.fire("Selamat Datang", "Anda Masuk Sebagai, SPI!", "success");
-          navigate("/Spi");
-          break;
-        case "4":
-          Swal.fire("Selamat Datang", "Anda Masuk Sebagai, Admin Audit IT!", "success");
-          navigate("/AdminAuditIt");
-          break;
-        default:
-          Swal.fire("Selamat Datang!", "Anda berhasil login.", "success");
-          navigate("/Dashboard");
-      }
-      closeModal();
+        // Arahkan pengguna berdasarkan peran
+        switch (String(data.user.role)) {
+            case "1":
+                Swal.fire("Selamat Datang", "Anda Masuk Sebagai, Admin!", "success");
+                navigate("/Admin");
+                break;
+            case "2":
+                Swal.fire("Selamat Datang", `Anda Masuk Sebagai, Auditee ${nik}!`, "success");
+                navigate(`/Auditee/${nik}`); // Arahkan ke halaman auditee dengan NIK
+                break;
+            case "3":
+                Swal.fire("Selamat Datang", "Anda Masuk Sebagai, SPI!", "success");
+                navigate("/Spi");
+                break;
+            case "4":
+                Swal.fire("Selamat Datang", "Anda Masuk Sebagai, Admin Audit IT!", "success");
+                navigate("/AdminAuditIt");
+                break;
+            default:
+                Swal.fire("Selamat Datang!", "Anda berhasil login.", "success");
+                navigate("/Dashboard");
+        }
+        closeModal();
     } catch (error) {
-      console.error('Login error:', error);
-      setError(error.message);
-      Swal.fire({
-        title: "Gagal!",
-        text: "Terjadi kesalahan saat login.",
-        icon: "error"
-      });
+        console.error('Login error:', error);
+        setError(error.message);
+        Swal.fire({
+            title: "Gagal!",
+            text: "Terjadi kesalahan saat login.",
+            icon: "error"
+        });
     }
-  };
+};
+
 
   return (
     <div className="ImgLogin">

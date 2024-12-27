@@ -93,6 +93,14 @@ class AuditeeModel {
   //     const result = await pool.query(query, [key])
   //   return result.rows[0];
   // }
+
+  static async getDataByNik(nik) {
+    const query = `
+        SELECT * FROM AUDIT.TMAUDUSR WHERE n_audusr_usrnm = $1`;
+    const result = await pool.query(query, [nik]);
+    return result.rows[0]; // Mengembalikan baris pertama dari hasil
+}
+
   
 }
 

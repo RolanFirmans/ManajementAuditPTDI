@@ -100,7 +100,20 @@ class AusiteeControler {
   //     res.status(500).json({ error: "Terjadi kesalahan pada server" });
   //   }
   // }
-
+  
+  static async getAuditeData(req, res) {
+    const { nik } = req.params;
+    try {
+        const data = await AuditeeModel.getDataByNik(nik);
+        if (data.length === 0) {
+            return res.status(404).json({ error: 'Data tidak ditemukan' });
+        }
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ error: 'Terjadi kesalahan saat mengambil data' });
+    }
+  }
 }
 
 module.exports = AusiteeControler;

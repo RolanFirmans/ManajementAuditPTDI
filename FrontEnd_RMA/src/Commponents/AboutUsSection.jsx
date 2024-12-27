@@ -4,7 +4,7 @@ import "../App.css";
 
 const AboutUsSection = () => {
   return (
-    <div className="about-section">
+    <div className="aboutroles-section">
       <h1>COMPANY OVERVIEW</h1>
       <div className="about">
         <div className="about-images">

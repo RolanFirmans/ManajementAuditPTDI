@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker'
 import { getYear } from 'date-fns'
 import 'react-datepicker/dist/react-datepicker.css'
 import axios from 'axios'
+import { useParams } from "react-router-dom";
 import { Pagination } from 'antd'
 import { useMemo } from 'react'
 import Swal from 'sweetalert2';
@@ -14,6 +15,7 @@ import UploadFileAuditee from '../Auditee/UploadFileAuditee'
 Modal.setAppElement('#root')
 
 const EvidenceAuditee = () => {
+  const { nik, setUserNik } = useParams(); // Ambil NIK dari URL
   const [orders, setOrders] = useState([])
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -93,6 +95,28 @@ const EvidenceAuditee = () => {
     }
     return { text: 'NOT COMPLETE', backgroundColor: 'red', color: 'white' }
   }
+
+  useEffect(() => {
+    const fetchUserNik = async () => {
+        try {
+            const token = localStorage.getItem('jwt_token'); // Ambil token dari local storage
+            if (!token) {
+                throw new Error('Token tidak ditemukan');
+            }
+            const response = await axios.get(`${import.meta.env.VITE_HELP_DESK}/AuditIT/data/${nik}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+            setUserNik(response.data.nik); // Simpan NIK pengguna
+        } catch (error) {
+            console.error('Error fetching user info:', error);
+            // Tambahkan logika untuk menangani kesalahan, misalnya redirect ke login
+        }
+    };
+
+    fetchUserNik();
+}, []);
 
   
 
@@ -232,11 +256,11 @@ const EvidenceAuditee = () => {
 
   const filteredOrders = useMemo(() => {
     let result = selectedYear
-      ? orders.filter(order => order.publishingYear === selectedYear)
-      : orders
-
+      ? orders.filter(order => order.publishingYear === selectedYear && order.auditee.nik === nik) // Filter berdasarkan NIK
+      : orders.filter(order => order.auditee.nik === nik); // Filter berdasarkan NIK jika tahun tidak dipilih
+  
     if (searchQuery.trim()) {
-      const searchLower = searchQuery.toLowerCase()
+      const searchLower = searchQuery.toLowerCase();
       result = result.filter(order => {
         return [
           order.dataAndDocumentNeeded,
@@ -249,14 +273,13 @@ const EvidenceAuditee = () => {
           order.auditee?.name,
           order.auditor,
           order.statusComplete?.text
-        ].some(
-          field => field && String(field).toLowerCase().includes(searchLower)
-        )
-      })
+        ].some(field => field && String(field).toLowerCase().includes(searchLower));
+      });
     }
-
-    return result.sort((a, b) => a.no - b.no)
-  }, [orders, selectedYear, searchQuery])
+  
+    return result.sort((a, b) => a.no - b.no);
+  }, [orders, selectedYear, searchQuery, nik]);
+  
 
   const currentPageData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -269,12 +292,12 @@ const EvidenceAuditee = () => {
 
   // -- MENAMPILKAN DATA SETELAH SPI UPLOAD EXCEL
   const fetchDataByYear = useCallback(async year => {
-    if (year) {
+    if (year && nik) {
       try {
         const response = await axios.get(
           `${import.meta.env.VITE_HELP_DESK}/AuditIT/tmau-devd`,
           {
-            params: { year: year }
+            params: { year: year, nik: nik }
           }
         )
         if (
@@ -320,9 +343,9 @@ const EvidenceAuditee = () => {
         console.error('Error fetching data:', error)
       }
     } else {
-      console.log('Tahun tidak dipilih, fetchDataByYear tidak dijalankan')
+      console.log('Tahun atau nik tidak dipilih, fetchDataByYear tidak dijalankan')
     }
-  }, [])
+  }, [nik])
 
   useEffect(() => {
     if (selectedYear) {

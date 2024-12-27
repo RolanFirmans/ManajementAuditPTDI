@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import LogoPTDI from "../Asset/LogoPTDI.png";
+import LogoPTDI from "../Asset/ptdi.png";
 import "../Commponents/LoginSection";
 import "../App.css";
 

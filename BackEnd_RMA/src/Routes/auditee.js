@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const cors = require("cors");
 const auditeeControler = require('../Controller/auditeeControler');
+const {verifyToken} = require('../middleware/authMiddleware');
 // const router = express.Router();
 const multer = require("multer");
 
@@ -30,5 +31,6 @@ router.get('/search-file', auditeeControler.getSearchFile);
 router.post('/upload-new-file', upload.single('file'), auditeeControler.uploadNewTugas);
 router.post('/test', upload.single('file'), auditeeControler.uploadNewTugasAuditee);
 router.post('/update-status', auditeeControler.updateStatusComleteAuditee);
+router.get('/data/:nik', verifyToken, auditeeControler.getAuditeData);
 // router.delete('/delete-file/:i_audevdfile', auditeeControler.handleDeleteFileAuditee)
 module.exports = router;
