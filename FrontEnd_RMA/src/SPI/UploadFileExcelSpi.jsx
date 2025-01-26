@@ -35,8 +35,8 @@ const UploadFileExcelSpi = () => {
     // Kondisi untuk memeriksa jika belum memilih tahun dan file
     if (!selectedDate && !file) {
       Swal.fire({
-        title: 'Error!',
-        text: 'Silakan pilih tahun dan upload file terlebih dahulu.',
+        title: 'Error!', 
+        text: 'Silakan upload file dan pilih tahun terlebih dahulu.',
         icon: 'error'
       })
       return

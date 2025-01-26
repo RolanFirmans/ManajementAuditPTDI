@@ -11,7 +11,7 @@ import '../App.css'
 
 Modal.setAppElement('#root')
 
-const FINANCE = () => {
+const EvidenceSpiFinance = () => {
   const [orders, setOrders] = useState([])
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -193,19 +193,19 @@ const FINANCE = () => {
   }
 
   // Fungsi untuk mengedit user
-  const handleEditUser = user => {
-    console.log('Data user yang akan diedit:', user)
-    setEditingUser(user)
-    setNewUser({
-      no: user.no,
-      dataAndDocumentNeeded: user.dataAndDocumentNeeded,
-      phase: convertPhaseToString(user.phase), // Konversi phase ke string untuk ditampilkan di form
-      status: convertStatusToString(user.status),
-      deadline: user.deadline,
-      auditor: convertAuditorToString(user.auditor)
-    })
-    setIsModalOpen(true)
-  }
+  // const handleEditUser = user => {
+  //   console.log('Data user yang akan diedit:', user)
+  //   setEditingUser(user)
+  //   setNewUser({
+  //     no: user.no,
+  //     dataAndDocumentNeeded: user.dataAndDocumentNeeded,
+  //     phase: convertPhaseToString(user.phase), // Konversi phase ke string untuk ditampilkan di form
+  //     status: convertStatusToString(user.status),
+  //     deadline: user.deadline,
+  //     auditor: convertAuditorToString(user.auditor)
+  //   })
+  //   setIsModalOpen(true)
+  // }
 
   // Fungsi untuk mengupdate input
   const handleInputChange = e => {
@@ -371,7 +371,7 @@ const FINANCE = () => {
         const response = await axios.get(
           `${import.meta.env.VITE_HELP_DESK}/SPI/tmau-devd`,
           {
-            params: { year: year,  auditor: 2}
+            params: { year: year, auditor: 2}
            
           }
         )
@@ -542,7 +542,6 @@ const FINANCE = () => {
       console.error('Error fetching remarks for key', key, ':', error)
     }
   }
-  
   /// Dwonload file
   const handleDownloadFile = async (fileId, filename) => {
     try {
@@ -637,15 +636,15 @@ const FINANCE = () => {
     })
 
     const result = await swalWithBootstrapButtons.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: 'Apakah Anda yakin?',
+      text: "Anda tidak akan bisa membalikkan ini!",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'No, cancel!',
+      confirmButtonText: 'Ya, hapus ini!',
+      cancelButtonText: 'Tidak, batalkan!',
       reverseButtons: true
     })
-
+    
     if (result.isConfirmed) {
       try {
         const response = await axios.delete(
@@ -657,7 +656,7 @@ const FINANCE = () => {
           setOrders(prevOrders => prevOrders.filter(order => order.no !== no))
 
           swalWithBootstrapButtons.fire({
-            title: 'Deleted!',
+            title: 'Hapus!',
             text: 'Evidence telah berhasil dihapus.',
             icon: 'success'
           })
@@ -667,7 +666,7 @@ const FINANCE = () => {
       } catch (error) {
         console.error('Error saat menghapus evidence:', error)
         Swal.fire(
-          'Error',
+          'Gagal',
           `Gagal menghapus evidence: ${
             error.response?.data?.message || error.message
           }`,
@@ -676,7 +675,7 @@ const FINANCE = () => {
       }
     } else if (result.dismiss === Swal.DismissReason.cancel) {
       swalWithBootstrapButtons.fire({
-        title: 'Cancelled',
+        title: 'Batalkan',
         text: 'Evidence tidak jadi dihapus.',
         icon: 'error'
       })
@@ -794,7 +793,7 @@ const FINANCE = () => {
                         order.statusComplete.text}
                     </td>
                     <td>
-                      <i
+                      {/* <i
                         className='bi-pencil-fill'
                         style={{
                           color: 'black',
@@ -803,7 +802,8 @@ const FINANCE = () => {
                           marginRight: '10px'
                         }}
                         onClick={() => handleEditUser(order)}
-                      ></i>
+                         title="Edit"
+                      ></i> */}
                       <i
                         className='bi-trash'
                         style={{
@@ -812,6 +812,7 @@ const FINANCE = () => {
                           cursor: 'pointer'
                         }}
                         onClick={() => handleDeleteUser(order.no)}
+                         title="Hapus"
                       ></i>
 
                       {order.statusComplete.backgroundColor === 'yellow' && (
@@ -823,6 +824,7 @@ const FINANCE = () => {
                             cursor: 'pointer'
                           }}
                           onClick={() => handleUpdateStatusSPI(order)}
+                          title="Status Complete"
                         ></i>
                       )}
                     </td>
@@ -948,4 +950,4 @@ const FINANCE = () => {
   )
 }
 
-export default FINANCE
+export default EvidenceSpiFinance

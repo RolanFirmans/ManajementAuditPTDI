@@ -193,19 +193,19 @@ const EvidenceSpi = () => {
   }
 
   // Fungsi untuk mengedit user
-  const handleEditUser = user => {
-    console.log('Data user yang akan diedit:', user)
-    setEditingUser(user)
-    setNewUser({
-      no: user.no,
-      dataAndDocumentNeeded: user.dataAndDocumentNeeded,
-      phase: convertPhaseToString(user.phase), // Konversi phase ke string untuk ditampilkan di form
-      status: convertStatusToString(user.status),
-      deadline: user.deadline,
-      auditor: convertAuditorToString(user.auditor)
-    })
-    setIsModalOpen(true)
-  }
+  // const handleEditUser = user => {
+  //   console.log('Data user yang akan diedit:', user)
+  //   setEditingUser(user)
+  //   setNewUser({
+  //     no: user.no,
+  //     dataAndDocumentNeeded: user.dataAndDocumentNeeded,
+  //     phase: convertPhaseToString(user.phase), // Konversi phase ke string untuk ditampilkan di form
+  //     status: convertStatusToString(user.status),
+  //     deadline: user.deadline,
+  //     auditor: convertAuditorToString(user.auditor)
+  //   })
+  //   setIsModalOpen(true)
+  // }
 
   // Fungsi untuk mengupdate input
   const handleInputChange = e => {
@@ -791,7 +791,7 @@ const EvidenceSpi = () => {
                         order.statusComplete.text}
                     </td>
                     <td>
-                      <i
+                      {/* <i
                         className='bi-pencil-fill'
                         style={{
                           color: 'black',
@@ -801,7 +801,7 @@ const EvidenceSpi = () => {
                         }}
                         onClick={() => handleEditUser(order)}
                          title="Edit"
-                      ></i>
+                      ></i> */}
                       <i
                         className='bi-trash'
                         style={{

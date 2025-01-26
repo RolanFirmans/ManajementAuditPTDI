@@ -340,6 +340,7 @@ const DataUser = () => {
       title: 'Apakah Anda yakin?',
       text: "Anda tidak akan dapat membalikkan ini!",
       icon: 'warning',
+      confirmButtonColor: "#d33",
       showCancelButton: true,
       confirmButtonText: 'Ya, hapus ini!',
       cancelButtonText: 'Tidak, batalkan!',
@@ -380,7 +381,9 @@ const DataUser = () => {
       Swal.fire({
         title: 'Batalkan',
         text: 'User tidak jadi dihapus.',
-        icon: 'error'
+        icon: 'error',
+        confirmButtonColor: "#d33",
+        confirmButtonText: 'Oke',
       })
     }
   }
